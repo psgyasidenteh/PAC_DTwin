@@ -1,0 +1,23 @@
+# OS Metadata
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Python & Environment
+__pycache__/
+*.py[cod]
+*.class
+*.env
+.venv/
+env/
+
+# Scratch & Temporary Media
+Err/
+ref2_page*.png
+*.tmp
+push_to_github.bat
+Refs/
+
+# Editor & IDE settings
+.vscode/
+.idea/

@@ -1,0 +1,332 @@
+/* ==========================================================================
+   LAYOUT ARCHITECTURE & STRUCTURE
+   Adhering to Better_Layout.md & Better_Typography.md
+   ========================================================================== */
+
+#app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+/* 1. TOP HEADER (Sticky Mission-Control Bar) */
+.scada-header {
+  height: var(--header-height);
+  min-height: var(--header-height);
+  background: var(--bg-surface-0);
+  backdrop-filter: var(--backdrop-blur);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--space-4);
+  z-index: 40;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brand-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-cyan) 0%, #0369a1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.brand-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Controls distinct from content (Better_Layout.md #2) */
+.btn-control {
+  height: 38px;
+  min-height: 38px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-elevation-1);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.btn-control:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevation-2);
+}
+
+.btn-control:active {
+  transform: scale(0.96);
+  background: var(--bg-surface-active);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  border-color: var(--color-cyan);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.35);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  border-color: #67e8f9;
+}
+
+.btn-danger {
+  background: rgba(225, 29, 72, 0.2);
+  border-color: var(--border-rose);
+  color: var(--text-rose);
+}
+
+.btn-danger:hover {
+  background: rgba(225, 29, 72, 0.35);
+  box-shadow: var(--shadow-glow-rose);
+}
+
+/* Live Operational Status Badge */
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid var(--border-emerald);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-emerald);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-emerald);
+  box-shadow: 0 0 8px var(--color-emerald);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* 2. TOP KPI RIBBON (Important Metrics Ordered at Top - Better_Layout.md #4) */
+.kpi-ribbon {
+  height: var(--kpi-ribbon-height);
+  min-height: var(--kpi-ribbon-height);
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: center;
+  padding-inline: var(--space-4);
+  gap: var(--space-3);
+  z-index: 30;
+}
+
+.kpi-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+}
+
+.kpi-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.kpi-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.kpi-unit {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* 3. MAIN WORKSPACE BODY (Sidebar + Flowsheet Canvas) */
+.scada-body {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - var(--header-height) - var(--kpi-ribbon-height));
+  position: relative;
+  overflow: hidden;
+}
+
+/* LEFT NAVIGATION SIDEBAR */
+.scada-sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100%;
+  background: var(--bg-surface-0);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 20;
+  padding: var(--space-3);
+  gap: var(--space-4);
+}
+
+.nav-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  padding-inline: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 12px;
+  min-height: 40px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.nav-link:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.nav-link:active {
+  transform: scale(0.96);
+}
+
+.nav-link.active {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--border-cyan);
+  color: var(--text-cyan);
+  font-weight: 600;
+}
+
+.nav-icon {
+  font-size: 14px;
+}
+
+/* CENTRAL FLOWSHEET CANVAS VIEWPORT */
+.scada-viewport {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-app);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* FLOATING OVERLAY CONTROLS (Controls float, Content bleeds - Better_Layout.md #8) */
+.viewport-toolbar {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--bg-surface-0);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-card);
+  z-index: 35;
+}
+
+.layer-filter-bar {
+  position: absolute;
+  bottom: var(--space-4);
+  left: var(--space-4);
+  background: var(--bg-surface-0);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  box-shadow: var(--shadow-card);
+  font-size: 12px;
+  color: var(--text-secondary);
+  z-index: 35;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.layer-item input[type="checkbox"] {
+  accent-color: var(--color-cyan);
+  cursor: pointer;
+}

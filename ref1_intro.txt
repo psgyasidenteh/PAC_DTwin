@@ -1,0 +1,451 @@
+
+--- Page 1 ---
+Received April 28, 2022, accepted May 23, 2022, date of publication May 27, 2022, date of current version June 8, 2022.
+Digital Object Identifier 10.1109/ACCESS.2022.3178424
+A Methodology for Generating a Digital Twin for
+Process Industry: A Case Study of a Fiber
+Processing Pilot Plant
+MOHAMMAD AZANGOO
+1, (Member, IEEE), LOTTA SORSAMÄKI2,
+SEPPO A. SIERLA
+1, (Senior Member, IEEE), TEEMU MÄTÄSNIEMI2, MIIA RANTALA
+3,
+KARI RAINIO2, AND VALERIY VYATKIN
+1,4, (Fellow, IEEE)
+1Department of Electrical Engineering and Automation, Aalto University, 00076 Helsinki, Finland
+2VTT Technical Research Center of Finland, 02044 Espoo, Finland
+3Semantum Oy, 02150 Espoo, Finland
+4Department of Computer Science, Electrical and Space Engineering, Luleå University of Technology, 971 87 Luleå, Sweden
+Corresponding author: Mohammad Azangoo (mohammad.azangoo@aalto.ﬁ)
+This work was supported by Business Finland under Grant 3915/31/2019 and Grant 4153/31/2019.
+ABSTRACT Digital twins are now one of the top trends in Industry 4.0, and many companies are using
+them to increase their level of digitalization, and, as a result, their productivity and reliability. However,
+the development of digital twins is difﬁcult, expensive, and time consuming. This article proposes a
+semi-automated methodology to generate digital twins for process plants by extracting process data from
+engineering documents using text and image processing techniques. The extracted information is used to
+build an intermediate graph model, which serves as a starting point for generating a model in a simulation
+software. The translation of a graph-based model into a simulation software environment necessitates the use
+of simulator-speciﬁc mapping rules. This paper describes an approach for generating a digital twin based on
+a steady state simulation model, using a Piping and Instrumentation Diagram (P&ID) as the main source of
+information. The steady state modeling paradigm is especially suitable for use cases involving retroﬁts for
+an operational process plant, also known as a brownﬁeld plant. A methodology and toolchain is proposed,
+consisting of manual, semi-automated and fully automated steps. A pilot scale brownﬁeld ﬁber processing
+plant was used as a case study to demonstrate our proposed methodology and toolchain, and to identify and
+address issues that may not occur in laboratory scale case studies. The article concludes with an evaluation
+of unresolved concerns and future research topics for the automated development of a digital twin for a
+brownﬁeld process system.
+INDEX TERMS Digital twin, process industry, modeling, steady state simulation, image recognition, text
+recognition, directed graph, piping and instrumentation diagram, ﬂowsheet population.
+I. INTRODUCTION
+The Fourth Industrial Revolution, also known as Industry 4.0,
+is characterized by rapid technological changes in response
+to new industrial requirements, such as more ﬂexible inter-
+connection, agile and smart automation systems, and big
+data handling. Chemical, pulp and paper, heat and power
+industries are examples of process industries that use con-
+tinuous manufacturing or use indistinguishable batches of
+materials to manufacture their products. Process industry, like
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Giovanni Merlino
+.
+other industrial sectors, must adapt to Industry 4.0 compatible
+technologies to speed decision-making, optimize processes,
+reduce risk and remain competitive and agile. As a result of
+technologies such as digital twins, the boundaries between
+the physical and digital worlds are becoming increasingly
+blurred. Digital twins use a model of an industrial plant
+to simulate the plant’s behavior and assist the process by
+interacting with it.
+There are many different simulation-based approaches
+under the umbrella of Industry 4.0 like Virtual Commis-
+sioning (VC) and Agent-Based Modelling and Simulation
+(ABMS) [1]. A key development in simulation technology
+VOLUME 10, 2022
+This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/licenses/by/4.0/
+58787
+
+--- Page 2 ---
+M. Azangoo et al.: Methodology for Generating Digital Twin for Process Industry: Case Study of Fiber Processing Pilot Plant
+during the fourth industrial revolution is the digital twin
+concept [2]. In the context of the process industry, a digital
+twin can be deﬁned as a virtual representation of a phys-
+ical system that is integrated into the actual process data.
+Kritzinger et al. [3] deﬁned, based on the level of integration,
+the digital model as a digital representation of a physical
+system with no automated data exchange, a digital shadow as
+a system having one-way data exchange, and ﬁnally a digital
+twin as a system having fully integrated, automated two-way
+data exchange between the physical and digital system. The
+digital twin can use existing communication infrastructure,
+such as a process automation network, to communicate with
+the physical system in a two-way manner [4]. A digital twin
+is a set of virtual objects that can simulate the behavior of
+the actual system in the deployed environment, and includes
+the features, condition and behavior of the real-life system
+through accessible virtual assets, like models and data [5].
+They can be used for different applications and purposes
+including more responsive and efﬁcient product design, opti-
+mization of the system, the digitalization of production facil-
+ities and development of more accurate control systems [6].
+To create a ﬁrst-principles digital twin, a digital model is
+ﬁrst imported into a simulation software and then integrated
+into the actual process data. Due to unknown or unpredictable
+prices, IT expertise requirements, and lack of simulation tool
+knowledge, SMEs use simulation models and digital twins
+in non-standard formats for production systems [7]. Using
+software and tools can speed up the digital twin generation
+process. Using image and text recognition software can auto-
+matically extract data from engineering documents, if they
+are not in an Industry 4.0 format. Processing extracted data
+based on semantics and logic can help to build a process
+simulation model and digital twin.
+The approach towards the generation of a digital twin
+for brownﬁeld process systems presented in this study was
+adopted from the general road map presented by Sierla et al.
+[8]. Brownﬁeld process systems are functioning plants that
+may have been developed and built before modern digital
+systems and may thus lack design information in an Industry
+4.0 format. A preliminary study on the semi-automatic gen-
+eration of a digital twin for a laboratory scale water process
+plant [9] was recently published. However, it was limited to
+a laboratory scale process plant with limited types of process
+equipment. It involved manual work for component selection,
+and assumed an available machine-readable P&ID ﬁle.
+This paper discusses a variety of approaches and software
+tools that have been developed independently to aid the cre-
+ation of digital twins for brownﬁeld process systems. The
+proposed approach continues the earlier work and presents
+the scale-up process for the semi-automatic generation of a
+digital twin. A pilot scale ﬁber process is used as a case study.
+The case is much more complicated than the laboratory scale
+works in previous case studies. The main contribution of this
+work is to design, develop and implement a methodology and
+toolchain for the semi-automatic generation of digital twins
+and to test it with this case study.
+Figure 1 shows the general structure of the proposed
+approach and the interconnections between the different
+software and tools used. This approach extracts required
+information from Piping and Instrumentation Diagrams
+(P&IDs), creates a machine-readable model of the system
+automatically, and lists semi-automatically the speciﬁc pro-
+cess components and pipeline connections wanted to be
+included in the digital model of the system. The ability
+to extract essential inputs from a P&ID using two distinct
+solutions with varying levels of ﬁdelity and certainty allows
+for a lot of ﬂexibility in dealing with diverse use cases.
+Then an intermediate graph-based model is built, contain-
+ing information about different process components, pipeline
+connections and attributes related to components like posi-
+tion, rotation, type and source ﬁle. The intermediate graph
+model will be adapted for steady state simulation, which
+requires information such as ports of process components,
+which is not speciﬁed in the P&ID. A steady state is a state
+of equilibrium in which all state variables in a process system
+remain constant. Finally, to be able to call the simulation
+model as a digital twin, it must be integrated into the actual
+process data with an on-line or off-line connection. However,
+this last step is not covered in this paper. The contribution of
+each speciﬁed program and tool to methodology formulation
+and development, as well as their structure and format of
+inputs and outputs, will be discussed in this study.
+This paper is structured as follows. Section II will review
+the existing literature. Section III will present a generic
+methodology to create steady state digital twins for brown-
+ﬁeld process systems. Section IV will present a brownﬁeld
+ﬁber processing plant as a pilot scale case study. Results of
+the implementation of the proposed methodology at the case
+study site will be provided and discussed in Section V. The
+last section concludes the paper by outlining potential next
+actions for improving and expanding the scope of this work.
+Additionally, there are two appendices about the positioning
+of components for visualization and simulator-speciﬁc map-
+ping rules for acting as an interpreter between the P&ID and
+the simulator.
+II. LITERATURE REVIEW
+Simulation-based research in Industry 4.0 is on the rise [1].
+The digital twin is the simulation model development ﬂagship
+in Industry 4.0. For example, Vijayakumar et al. [10] pro-
+posed replacing human operation of a manufacturing facil-
+ity with a digital twin in order to keep the model updated
+and simulated in real time, as well as to reduce the cost
+and time necessary for operation. Theoretically, digital twins
+are presently at the rapid growth stage [6]. It indicates that
+researchers and industry are gradually accepting digital twins.
+Making digital twins isn’t straightforward. Essential aspects
+of the digital twin for brownﬁeld plants need to be deﬁned.
+Bamberg et al. [11] tried to list the essential items and
+beneﬁts of a digital twin from the user’s perspectives; to
+ensure the digital transformation, a list of questions relating
+to requirements and probable challenges should be reviewed.
+58788
+VOLUME 10, 2022
+
+--- Page 3 ---
+M. Azangoo et al.: Methodology for Generating Digital Twin for Process Industry: Case Study of Fiber Processing Pilot Plant
+However, the ultimate answer varies based on the system’s
+aims, structure, and domain. A repeatable infrastructure will
+speed up and automate the generation of digital twins from
+available engineering documents and help to track changes
+during the life cycle [12].
+A. PROCESS SIMULATION; CORE OF A DIGITAL TWIN
+Digital models, including steady state or dynamic ﬁrst-
+principles process simulation models, data-driven models and
+combinations of these two, i.e. hybrid models, constitute
+the core of a digital twin [4], [13]. A steady state simu-
+lation, which will be considered in this paper, is used to
+look into a system’s behavior when it is operated without
+disturbances, operator input or other transients. The main
+difference between steady state and dynamic simulation is
+that steady state assumes that variables are consistent across
+time and there is no accumulation in the system, so the overall
+mass and energy are ﬁxed. To ﬁnd the best design parameters
+and operating conditions for systems in a short time, steady
+state simulation is used. Rosen et al. [14] see the digital
+twin concept as the next wave in process modeling and sim-
+ulation emerging after simulation-based system design and
+engineering. Martinez et al. [15] present a tracking simulation
+architecture for process systems using the data history of
+the process to update the ﬁrst-principles model and keep the
+tracking model updated during the system’s life cycle.
+Though a digital twin is similar to a digital process sim-
+ulation model, it is much more. Process simulation models
+focus on what could happen in the real world, but not what
+is currently happening, whereas digital twins can be used
+for monitoring, controlling, diagnosing and predicting the
+current state of the process [16]. To enable this, the digital
+twin must integrate the process model into the current process
+data [4].
+Computer-based simulation of processes using ﬁrst-
+principles models dates back to the 1980s, and has since then
+been widely used as a design and modeling tool for various
+industries [17]. Sorsamäki et al. [18] reviewed some of the
+scientiﬁc literature on using both steady state and dynamic
+process simulation in pulp and paper applications. However,
+none of these digital models have fully integrated automated
+data exchange between the physical system and its digital
+counterpart, and thus they don’t meet Kritzinger’s deﬁnition
+for digital twin [3].
+B. DIGITAL TWINS IN PROCESS INDUSTRY
+The digital twin term originates from the aerospace industry
+in early 2000s [19], and has been used since early 2010s in
+manufacturing industry [20]. However, it is only in recent
+years that process industry have adopted its usage; chemical
+industry [13] and pulp and paper industry [21] in the front
+line, while food processing industry [4] and biomanufac-
+turing industry [22] are still falling behind other process
+industries in terms of its implementation.
+It is neither simple nor straightforward to use digital twins
+in industry. Two years ago, ARC Advisory Group published
+a white paper about the prerequisites for using digital twins
+in process industry [23]. The white paper stated that an orga-
+nization is digitally ready when it has reached a minimum
+level of digital maturity in resources, systems, organization
+and culture. This maturity level of the company is the key
+character to guarantee the success of digital transformation
+and the value of the digital twin. The implementation of
+digital twins will make feasible the transition to smart pro-
+cessing characterized by a high level of automation due to
+the extended use of remote sensing, real-time data acquisition
+and monitoring, and advanced visualization tools [4].
+Examples of the usage of digital twins in process industries
+exist. Industry 4.0 is profoundly affecting the digitalization
+need in pulp and paper industry. Andritz has responded to
+this by creating a digital twin application that combines
+the simulation software IDEAS with an execution platform
+where human interactions can be implemented into contin-
+uous processes [24]. Carlberg [21] presented an interesting
+vision of an autonomous pulp mill of the future as a mill
+that beneﬁts from the use of digital twins utilizing a dynamic
+process simulation model coupled with a control model of
+the real-time control system to allow the autonomous mill to
+‘‘run itself’’ with little or no human intervention. Örs et al.
+[13] suggested a generic framework for AI assisted digital
+twin in chemical process industry from an operational per-
+spective. The main focus in their paper was, however, on the
+conceptual formulation, and further practical implementation
+will be needed to validate the framework. Koulouris et al. [4]
+presented the methodology for the application of integrated
+process model and digital twin model aiming to enhance the
+production planning and scheduling of an industrial scale
+beer production and ﬁlling facility. Udugama et al. [22] pre-
+sented a framework built upon a ﬁve-stage pathway starting
+from a basic steady state process model and ending to a
+fully-ﬂedged digital twin for a second-generation ethanol
+fermentation process. Digital twins can be used as a con-
+trol strategy development tool to enable the development of
+optimized controllers which can increase the efﬁciency of
+bioprocess systems while they are in normal operation [25].
+C. OBJECT RECOGNITION FOR INFORMATION
+EXTRACTION FROM ENGINEERING DOCUMENTS
+Using computer vision tools can speed up and improve the
+quality of digital asset generation. In fact, most industrial pro-
+cess automation relies on these techniques. Videos, 3D mod-
+els, point clouds, drawings, engineering documents, check
+lists, and operational data are examples of source data.
+Computer vision techniques can see and detect objects,
+compare and categorize them using database information.
+For more complex tasks like segmentation, scene understand-
+ing, object tracking, image captioning and event detection,
+advanced computer vision techniques can be used [26]. Major
+software providers have each their own optical character
+recognition (OCR) packages. Nowadays, these products are
+mature and commercially available as software libraries.
+There are a few Open-Source software libraries available for
+VOLUME 10, 2022
+58789
+
+--- Page 4 ---
+M. Azangoo et al.: Methodology for Generating Digital Twin for Process Industry: Case Study of Fiber Processing Pilot Plant
+FIGURE 1. Structure and connection between subsystems for steady state digital twins.
+OCR, and of these Tesseract is generally considered the best
+[27]. Tesseract version 5.0 was used in the presented work to
+extract wanted text snippets in a P&ID.
+Many machine vision tools have been developed for deal-
+ing with engineering documents such as P&IDs. Yu et al. [28]
+use deep learning to recognize data from P&IDs. Preprocess-
+ing the diagram involves removing borders and realigning it.
+This stage uses an AlexNet deep learning model to recognize
+symbols, and a connectionist text proposal network (CTPN)
+to recognize text. Also, image processing is used to rec-
+ognize piping, signal lines, and tables. Ali et al. published
+another study on deep learning algorithms for text and symbol
+detection of P&IDs [29]. In this method, OpenCV library
+detects geometrically structured objects after identifying text
+in diagrams. According to Kang et al. [30], a database of
+registered symbols is used to recognize symbols from P&IDs
+using template matching. A sliding window method considers
+lines connected to recognized symbols. OCR recognizes text
+and uses predeﬁned attribute information for each symbol
+to connect them. Mani et al. [31] used a Convolutional
+Neural Network (CNN) to detect instrumentation symbols.
+Bounding boxes of text are recognized with Efﬁcient and
+Accurate Scene Text Detector (EAST) and the text interpreted
+with Tesseract OCR. Connection detection is performed by
+transforming the pixels into a graph and performing a depth-
+ﬁrst search. In the work presented by Rahul et al. [32], a
+fully convolutional network (FCN) is trained to recognize
+symbols and a connectionist text proposal network (CTPN)
+and Tesseract ORC are used to recognize text.
+D. AUTOMATIC GENERATION OF DIGITAL TWINS
+All of the examples mentioned in section II.B were based
+on manual generation of a digital twin. However, the main
+ambition is towards the automatic generation of digital twins.
+Using available or extractable information of the brown-
+ﬁeld process can be a good starting point for the automatic
+58790
+VOLUME 10, 2022
+
+--- Page 5 ---
+M. Azangoo et al.: Methodology for Generating Digital Twin for Process Industry: Case Study of Fiber Processing Pilot Plant
+digital twin generation. Digital twins for brownﬁeld pro-
+cesses can be automatically extracted from available or
+extractable information such as 3D scan of production
+sites [32], [33], 3D models [35], P&ID documents [36],
+design phase requirements [37], archived data repository [38]
+and mixture of these information [39]. Sierla et al. [40]
+extracted graph models of process plants from two different
+sources, 3D CAD models and P&IDs, for the generation of
+digital twins. However, the extracted graph models were at
+varying levels of abstraction, making it difﬁcult to compare
+them for validation purposes. Several algorithms have been
+proposed for converting a 3D CAD generated graph to make
+it at the same level of abstraction as a P&ID generated
+graph [41]. Siemens and Bentley Systems [39] collaborated
+to create an as-built digital twin of a brownﬁeld process plant
+using a variety of data sources, including 1D (datasheets,
+lists, records), 2D (drawings, logical connectivity), and 3D
+(physical layout, sizes). They also considered data that was
+unstructured or unlabeled (dark data). Dark data can be made
+more visible by being tagged, validated, or linked to other
+data, resulting in more precise digital twins.
+Automatic model generation is part of the story, but not the
+whole. To have a comprehensive digital twin generator, it is
+also necessary to implement and connect generation phases
+such as simulation software interface implementation, ini-
+tial condition consideration, and equipment parameterization.
+To make this procedure more automatic, Sierla et al. [9] intro-
+duced several rules to convert an intermediate graph model
+into a format suitable for steady state simulation software.
+Azangoo et al. [42] demonstrated how machine learning can
+extract process parameters for digital twins from recorded
+process history.
+There are limited research publications which describe
+a comprehensive chain of tools for extracting information
+from engineering legacy documents, processing intermediate
+extracted models, and transferring required info to a simula-
+tion model for a speciﬁc application. One of the most compre-
+hensive works in this domain was presented by Arroyo et al.
+[43]. Their proposed methodology can extract model infor-
+mation from both raster images and vectorized graphic P&ID
+ﬁles and transfer them to Modelica modeling language. The
+generated model can be manually connected to a process
+control system to validate control system during Factory
+Acceptance Tests (FATs). Son et al. [44] present another
+general tool chain for the generation of updated model of the
+system from new point clouds, 3D models and P&ID ﬁles.
+Solution for the automatic generation of digital twins is
+not limited to the process industry. Also in other domains,
+like manufacturing, several solutions have been suggested.
+To save cost, time and resources, and to make the pro-
+cess IT expert independent, Sommer et al. [45] developed
+some tools to automate part of the procedure for a digi-
+tal twin generation of a manufacturing system. They used
+fast scans of the manufacturing site and subsequent object
+recognition in the point cloud to import the model of fac-
+tory equipment into SolidWorks simulation software. For the
+rest of the simulation model generation, human expert input
+is required. Liu et al. [46] presented an implemented and
+validated digital twin framework for metal additive manu-
+facturing systems, where a cloud digital twin is connected
+to distributed edge digital twins in different product lifecy-
+cle stages. Stobrawa et al. [47] presented a semi-automatic
+solution for transferring extracted information from 3D scan
+using object recognition tools to a simulation software to
+create a virtual model of a production system for generating a
+digital twin. Their solution is exporting the object data to an
+XML-ﬁle and then transferring that to Plant Simulation.
+E. FLOWSHEET IN ENGINEERING DESIGN
+Process design and engineering phases produce ﬂow-
+sheets which can be conceptual diagrams, process ﬂow
+diagrams (PFDs) or piping and instrumentation diagrams
+(P&IDs). PFD and P&ID provide the functional design basis
+on which the rest of the system relies. Other required infor-
+mation and process engineering documents are often created
+and linked with these two most essential documents. P&ID
+contains detailed information about the process components,
+instruments, and control logic of the process. Since the appli-
+cation of P&ID documents is not limited to design phase
+but also operation and maintenance, it is the most common
+engineering document in the brownﬁeld process systems.
+The standard ISO 10303 provides a neutral and computer-
+interpretable mechanism for describing and exchanging
+product data independent from any particular system. Its
+application protocol AP231 [48] deﬁnes a process ﬂow dia-
+gram as a schematic representation of process description
+(precisely process_deﬁnition element). The process deﬁni-
+tion is a set of process activities (e.g., unit operations) which
+transform or transport process materials to products or waste.
+These activities separate, mix, process or change physical
+state of materials and intermediate products and they are
+carried out by plant items or real major process equipment.
+A process topology organizes and orders process activities by
+hierarchical and stream relationships and speciﬁes a bound-
+ary of process. The streams are ﬂows into or out of unit
+operations and they are typically connected to ports of unit
+operations. A stream can be a material, energy, information,
+or signal stream. Each unit operation, stream and port have a
+symbol occurrence in the schematic representation. To gener-
+ate the representation, the standard lists a lot of needed infor-
+mation which will be considered in the subsequent sections.
+F. INDUSTRIAL STATE OF THE ART
+Many commercial technologies claim to create digital twins
+automatically. In this ﬁeld, there are a lot of competitors. But
+a closer look at these solutions reveals that most are still in
+development and require more time and effort to improve.
+The PIDgraph program [49] can build a DEXPI XML version
+of a PDF, DWG, and Bitmap P&ID ﬁle. This solution can’t
+make a comprehensive digital twin right now, but a DEXPI
+ﬁle. Similarly, Model Broker software [50] can automatically
+extract data from old engineering documents, like P&IDs,
+VOLUME 10, 2022
+58791

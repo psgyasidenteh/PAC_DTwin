@@ -1,0 +1,360 @@
+/* ==========================================================================
+   SCADA COMPONENTS: FACEPLATES, DRAWERS, MODALS & GAUGES
+   Conforming to Better_Layout.md & Better_Typography.md
+   ========================================================================== */
+
+/* 1. ISA-18.2 ALARM ANNUNCIATION BAR */
+.alarm-banner {
+  height: 36px;
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--space-4);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  z-index: 38;
+}
+
+.alarm-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.alarm-flash-badge {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.alarm-priority-trip {
+  background: var(--color-rose);
+  color: #ffffff;
+  box-shadow: var(--shadow-glow-rose);
+  animation: alarm-blink 1s infinite;
+}
+
+.alarm-priority-warn {
+  background: var(--color-amber);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-glow-amber);
+}
+
+@keyframes alarm-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* 2. DRAGGABLE ISA-5.1 CONTROLLER FACEPLATE MODAL */
+.faceplate-modal {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  width: 320px;
+  background: var(--bg-surface-0);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-cyan);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card), 0 0 30px rgba(6, 182, 212, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  overflow: hidden;
+  animation: slide-in-scale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-in-scale {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.faceplate-header {
+  padding: var(--space-3);
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: move;
+}
+
+.faceplate-tag {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-cyan);
+  letter-spacing: -0.01em;
+}
+
+.faceplate-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.faceplate-close {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, color 0.15s ease;
+}
+
+.faceplate-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-hover);
+}
+
+.faceplate-close:active {
+  transform: scale(0.96);
+}
+
+.faceplate-body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* PV / SP / OP Vertical Bar Gauge Display */
+.gauges-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  text-align: center;
+}
+
+.gauge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.gauge-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.gauge-bar-track {
+  width: 14px;
+  height: 90px;
+  background: var(--bg-surface-1);
+  border-radius: var(--radius-full);
+  position: relative;
+  overflow: hidden;
+  margin-block: var(--space-1);
+  border: 1px solid var(--border-subtle);
+}
+
+.gauge-bar-fill {
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  border-radius: var(--radius-full);
+  transition: height 0.3s ease;
+}
+
+.fill-pv { background: linear-gradient(to top, #0284c7, #38bdf8); }
+.fill-sp { background: linear-gradient(to top, #059669, #34d399); }
+.fill-op { background: linear-gradient(to top, #d97706, #fbbf24); }
+
+.gauge-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Mode Buttons */
+.mode-toggle-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.mode-btn {
+  padding-block: 8px;
+  min-height: 36px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-elevation-1);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mode-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.mode-btn:active {
+  transform: scale(0.96);
+}
+
+.mode-btn.active {
+  background: var(--color-cyan);
+  color: var(--text-inverse);
+  border-color: #67e8f9;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+}
+
+/* Setpoint Input Row */
+.sp-input-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.sp-input {
+  flex: 1;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.sp-input:focus {
+  border-color: var(--color-cyan);
+}
+
+/* 3. SLIDE-OUT CONTROL DRAWER: FEED & DESIGN SPECS */
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 420px;
+  height: 100%;
+  background: var(--bg-surface-0);
+  backdrop-filter: var(--backdrop-blur);
+  border-left: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-panel);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-panel.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: var(--space-4);
+  background: var(--bg-surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.control-card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.control-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-cyan);
+}
+
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.slider-control {
+  width: 100%;
+  accent-color: var(--color-cyan);
+  cursor: pointer;
+}
+
+/* 4. STREAM TELEMETRY HOVER TOOLTIP */
+.stream-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-surface-0);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-cyan);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-card);
+  font-size: 11px;
+  color: var(--text-primary);
+  z-index: 60;
+  min-width: 220px;
+  display: none;
+}
+
+.tooltip-header {
+  font-weight: 800;
+  color: var(--text-cyan);
+  margin-bottom: var(--space-1);
+  font-size: 12px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  padding-block: 2px;
+}
+
+.tooltip-key {
+  color: var(--text-secondary);
+}
+
+.tooltip-val {
+  font-weight: 600;
+  color: var(--text-primary);
+}

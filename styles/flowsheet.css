@@ -1,0 +1,296 @@
+/* ==========================================================================
+   FLOWSHEET VECTOR SVG & PIPELINE ANIMATIONS
+   Interactive Process Flow Diagram & P&ID Styles
+   ========================================================================== */
+
+.flowsheet-svg-container {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  user-select: none;
+}
+
+.flowsheet-svg-container:active {
+  cursor: grabbing;
+}
+
+/* SVG Base */
+.flowsheet-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Grid & Guidelines */
+.svg-grid-pattern {
+  stroke: rgba(148, 163, 184, 0.05);
+  stroke-width: 1;
+}
+
+/* Pipelines Base */
+.pipeline {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke-width 0.2s, stroke 0.2s;
+  cursor: pointer;
+}
+
+.pipeline:hover {
+  stroke-width: 6 !important;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Dynamic Animated Flow Stroke (Better_UI / Dynamic Flow) */
+.pipeline-flow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 8, 12;
+  animation: flow-dash 1.5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+/* Fluid Service Colors */
+.pipe-bauxite-ore { stroke: var(--pipe-bauxite-slurry); }
+.pipe-calcined-solids { stroke: var(--pipe-calcined-ore); }
+.pipe-flue-gas { stroke: var(--pipe-flue-gas); }
+.pipe-slurry { stroke: #d97706; }
+.pipe-hcl-acid { stroke: var(--pipe-hcl-acid); }
+.pipe-acid { stroke: var(--pipe-hcl-acid); } /* Alias for P&ID */
+.pipe-plp-liquor { stroke: var(--pipe-plp-liquor); }
+.pipe-pac-product { stroke: var(--pipe-pac-product); }
+.pipe-pac { stroke: var(--pipe-pac-product); } /* Alias for P&ID */
+.pipe-cooling-water { stroke: var(--pipe-cooling-water); }
+.pipe-process-water { stroke: var(--pipe-process-water); }
+.pipe-steam { stroke: var(--pipe-steam); }
+
+/* Flow Arrows */
+.flow-arrow {
+  fill: currentColor;
+}
+
+/* Stream Callout Badges */
+.stream-badge {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.stream-badge:hover {
+  filter: drop-shadow(0 0 8px var(--color-cyan-glow));
+}
+
+.stream-badge:hover .stream-badge-rect {
+  stroke: var(--color-cyan);
+  stroke-width: 2;
+  fill: rgba(6, 182, 212, 0.25);
+}
+
+.stream-badge:active {
+  filter: drop-shadow(0 0 10px var(--color-cyan)) brightness(1.25);
+}
+
+.stream-badge-rect {
+  fill: var(--bg-surface-0);
+  stroke: var(--border-medium);
+  stroke-width: 1.5;
+  rx: 4;
+  transition: stroke 0.15s ease, fill 0.15s ease;
+}
+
+.stream-badge-rect.active {
+  stroke: var(--color-cyan);
+  fill: rgba(6, 182, 212, 0.2);
+}
+
+.stream-badge-text {
+  fill: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* Equipment Styling */
+.equipment-group {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.equipment-group:hover .equipment-body {
+  filter: drop-shadow(0 0 12px var(--color-cyan-glow));
+  stroke: var(--color-cyan) !important;
+}
+
+.equipment-group:active .equipment-body {
+  filter: drop-shadow(0 0 16px var(--color-cyan-glow)) brightness(1.2);
+}
+
+.equipment-body {
+  fill: var(--bg-surface-0);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition: stroke 0.15s ease, fill 0.15s ease, filter 0.15s ease;
+}
+
+.equipment-accent {
+  fill: rgba(2, 132, 199, 0.08);
+  stroke: var(--color-cyan);
+  stroke-width: 1.5;
+}
+
+/* ISO 10628 Standardized Chemical Equipment Classes */
+.equipment-dished-head {
+  fill: var(--bg-surface-0);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+
+.equipment-jacket {
+  fill: none;
+  stroke: var(--color-blue);
+  stroke-width: 2.5;
+  stroke-dasharray: 5, 3;
+}
+
+.equipment-shaft {
+  stroke: var(--text-tertiary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.equipment-impeller {
+  fill: var(--text-secondary);
+  stroke: var(--text-tertiary);
+  stroke-width: 1.5;
+}
+
+.equipment-motor {
+  fill: var(--bg-surface-3);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.equipment-pier {
+  fill: var(--bg-surface-3);
+  stroke: var(--border-medium);
+  stroke-width: 1.5;
+}
+
+.equipment-plates {
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+
+.equipment-tag-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 800;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.equipment-name-label {
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  fill: var(--text-secondary);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* Dynamic Rotating Impellers & Kiln Animations */
+.rotating-part {
+  transform-origin: center;
+  animation: rotate-continuous 3s linear infinite;
+}
+
+@keyframes rotate-continuous {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.kiln-flame {
+  animation: flame-flicker 0.8s alternate infinite ease-in-out;
+}
+
+@keyframes flame-flicker {
+  0% { opacity: 0.8; transform: scaleY(1); }
+  100% { opacity: 1; transform: scaleY(1.15); filter: drop-shadow(0 0 12px #f97316); }
+}
+
+/* ISA-5.1 Instrument Bubbles */
+.instrument-bubble {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.instrument-bubble:hover {
+  filter: drop-shadow(0 0 10px var(--color-cyan-glow));
+}
+
+.instrument-bubble:hover circle {
+  stroke: var(--color-cyan) !important;
+  stroke-width: 2.5px;
+}
+
+.instrument-bubble:hover rect {
+  stroke: var(--color-cyan) !important;
+  fill: var(--bg-surface-2) !important;
+}
+
+.instrument-bubble:active {
+  filter: drop-shadow(0 0 14px var(--color-cyan)) brightness(1.25);
+}
+
+.instrument-circle {
+  fill: var(--bg-surface-0);
+  stroke: var(--border-cyan);
+  stroke-width: 1.5;
+}
+
+.instrument-divider {
+  stroke: var(--border-cyan);
+  stroke-width: 1;
+}
+
+.instrument-tag-text {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  fill: var(--text-cyan);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.instrument-val-text {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* Layer Visibility Toggles */
+.hide-layer-instrumentation .instrument-bubble,
+.hide-layer-instrumentation .instrument-lead-line {
+  display: none !important;
+}
+
+.hide-layer-electrical .electrical-element {
+  display: none !important;
+}
+
+.hide-layer-piping .pipeline,
+.hide-layer-piping .pipeline-flow,
+.hide-layer-piping .stream-badge {
+  display: none !important;
+}

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>30,000 TPA PAC Chemical Plant Digital Twin | Awaso, Ghana</title>
+  <meta name="description" content="Industrial Process Digital Twin for 30,000 TPA Poly-Aluminium Chloride (PAC) Plant in Awaso, Ghana. Dual-Twin IIC Architecture, Aspen Plus Kinetics, and Real-Time SCADA Flowsheet." />
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- SCADA Stylesheets -->
+  <link rel="stylesheet" href="styles/scada-tokens.css" />
+  <link rel="stylesheet" href="styles/layout.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+  <link rel="stylesheet" href="styles/flowsheet.css" />
+</head>
+<body>
+  <div id="app-container">
+    <!-- 1. MISSION-CONTROL HEADER -->
+    <header class="scada-header">
+      <div class="header-brand">
+        <div class="brand-badge">PAC</div>
+        <div class="brand-meta">
+          <span class="brand-title">30,000 TPA Poly-Aluminium Chloride Plant</span>
+          <span class="brand-subtitle">Industrial Process Digital Twin &bull; Awaso, Western North, Ghana</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Live Operating Status -->
+        <div class="status-pill" id="plant-status-pill">
+          <span class="status-dot"></span>
+          <span id="plant-status-text">ONLINE &bull; NORMAL STEADY-STATE</span>
+        </div>
+
+        <!-- Live Clock -->
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); background: var(--bg-surface-2); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" id="scada-clock">
+          12:00:00 UTC
+        </div>
+
+        <!-- Theme Toggle (Light Mode Default) -->
+        <button id="btn-theme-toggle" class="btn-control" title="Toggle Light / Dark SCADA Theme">
+          <span id="theme-toggle-icon">🌙</span>
+          <span id="theme-toggle-text">Dark Mode</span>
+        </button>
+
+        <!-- Plant Feed Controls Button -->
+        <button id="btn-open-feed-controls" class="btn-control btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Feed Boundaries & Design Specs
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. HIGH-DENSITY KPI RIBBON -->
+    <div class="kpi-ribbon">
+      <div class="kpi-item">
+        <span class="kpi-label">Bauxite Feed:</span>
+        <span class="kpi-value" id="kpi-bauxite-rate">755.99</span>
+        <span class="kpi-unit">kg/h</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">PAC Output:</span>
+        <span class="kpi-value" id="kpi-pac-rate">2,045.0</span>
+        <span class="kpi-unit">kg/h</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">Kiln Burning:</span>
+        <span class="kpi-value" id="kpi-kiln-temp">850.0</span>
+        <span class="kpi-unit">°C</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">Al2O3 Recovery:</span>
+        <span class="kpi-value" id="kpi-alumina-conv">88.4</span>
+        <span class="kpi-unit">%</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">Keggin Al13:</span>
+        <span class="kpi-value" id="kpi-keggin-al13">48.5</span>
+        <span class="kpi-unit">% Al(b)</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">Unit Cost:</span>
+        <span class="kpi-value" id="kpi-unit-cost" style="color: var(--color-emerald);">$405.26</span>
+        <span class="kpi-unit">/t PAC</span>
+      </div>
+    </div>
+
+    <!-- 3. MAIN WORKSPACE -->
+    <div class="scada-body">
+      <!-- LEFT SIDEBAR NAVIGATION -->
+      <aside class="scada-sidebar">
+        <!-- Flowsheet Views Section -->
+        <div>
+          <div class="nav-section-title">Process Flowsheets</div>
+          <ul class="nav-list">
+            <li>
+              <a class="nav-link active" data-view="pfd">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                Master Plant PFD
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="pid" data-area="600">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Area 600 P&ID (Acid Leach)
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="pid" data-area="200">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Area 200 P&ID (Rotary Kiln)
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="pid" data-area="700">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+                Area 700 P&ID (Basification)
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="pid" data-area="100">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                Area 100 P&ID (Crushing)
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="pid" data-area="300">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                Area 300 P&ID (Flue Gas)
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="pid" data-area="500">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+                Area 500 P&ID (Wet Milling)
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Operations & Analytics Section -->
+        <div>
+          <div class="nav-section-title">Operations & Engineering</div>
+          <ul class="nav-list">
+            <li>
+              <a class="nav-link" data-view="analytics" data-subtab="soft-sensors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+                EKF Soft Sensors
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="analytics" data-subtab="hazop">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                HAZOP Safety Simulator
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="analytics" data-subtab="economics">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Economics & Ghana ESG
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="analytics" data-subtab="streams-table">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                H&MB Stream Table (64)
+              </a>
+            </li>
+            <li>
+              <a class="nav-link" data-view="analytics" data-subtab="equipment-twin">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                Dual-Twin Registry (EDT/PiP)
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Plant Metadata Card -->
+        <div style="margin-top: auto; background: var(--bg-surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-3); font-size: 10px; color: var(--text-tertiary);">
+          <div style="font-weight: 700; color: var(--text-secondary); margin-bottom: 4px;">PLANT SPECIFICATIONS</div>
+          <div>Location: Awaso, Ghana</div>
+          <div>Design: 30,000 TPA Liquid PAC</div>
+          <div>Gibbsite Grade: 59.7% Al(OH)3</div>
+          <div>Aspen Plus ENRTL-RK Validated</div>
+        </div>
+      </aside>
+
+      <!-- MAIN CENTER VIEWPORT -->
+      <main id="main-viewport" style="flex: 1; height: 100%; position: relative; overflow: hidden;">
+        <!-- Container 1: Master PFD -->
+        <div id="pfd-viewport-container" style="width: 100%; height: 100%; display: block;"></div>
+
+        <!-- Container 2: Area P&ID -->
+        <div id="pid-viewport-container" style="width: 100%; height: 100%; display: none;"></div>
+
+        <!-- Container 3: Analytics & Dashboards -->
+        <div id="analytics-viewport-container" style="width: 100%; height: 100%; display: none;"></div>
+      </main>
+    </div>
+
+    <!-- 4. BOTTOM ISA-18.2 ALARM ANNUNCIATION BANNER -->
+    <div class="alarm-banner">
+      <div class="alarm-item">
+        <span class="alarm-flash-badge alarm-priority-warn" id="alarm-banner-badge">SYS NORMAL</span>
+        <span id="alarm-banner-text" style="color: #ffffff;">All process systems within normal operating envelopes. Interlocks armed.</span>
+      </div>
+      <div style="display: flex; gap: var(--space-2); align-items: center;">
+        <span style="color: var(--text-tertiary); font-size: 10px;" id="alarm-banner-count">0 Active Alarms</span>
+        <button id="btn-ack-alarms" class="btn-control" style="height: 24px; padding-inline: 8px; font-size: 10px;">Acknowledge (F2)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main ES6 Application Entrypoint -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+Page 2: 4.0 format. A preliminary study on the semi-automatic gen-
+Page 2: Figure 1 shows the general structure of the proposed
+Page 2: 4.0 format. A preliminary study on the semi-automatic gen-
+Page 2: Figure 1 shows the general structure of the proposed
+Page 2: 4.0 format. A preliminary study on the semi-automatic gen-
+Page 2: Figure 1 shows the general structure of the proposed
+Page 6: Figure 2 shows the proposed methodology for the semi-
+Page 6: Figure 2 shows the proposed methodology for the semi-
+Page 6: Figure 2 shows the proposed methodology for the semi-
+Page 6: Figure 2 shows the proposed methodology for the semi-
+Page 7: 5.0 (the Python program library pytesseract is used). If the
+Page 7: 5.0 (the Python program library pytesseract is used). If the
+Page 9: Figure 5 depicts a class diagram created in the Uniﬁed
+Page 9: Figure 5 depicts a class diagram created in the Uniﬁed
+Page 9: Figure 5 depicts a class diagram created in the Uniﬁed
+Page 11: Figure 11. The bridge, as well as the self-named components
+Page 11: Figure 11. The bridge, as well as the self-named components
+Page 13: IV. CASE STUDY
+Page 13: V. RESULTS AND DISCUSSION
+Page 13: IV. CASE STUDY
+Page 13: V. RESULTS AND DISCUSSION
+Page 13: IV. CASE STUDY
+Page 13: V. RESULTS AND DISCUSSION
+Page 13: IV. CASE STUDY
+Page 13: V. RESULTS AND DISCUSSION
+Page 15: Figure 17 shows a DEXPI ﬁle (C1) in XML markup lan-
+Page 15: Figure 17 shows a DEXPI ﬁle (C1) in XML markup lan-
+Page 17: Figure 18 depicts a visualization of the produced model
+Page 17: Figure 19 shows parts of the populated steady state sim-
+Page 17: Figure 18 depicts a visualization of the produced model
+Page 17: Figure 19 shows parts of the populated steady state sim-
+Page 19: VI. CONCLUSION AND FURTHER WORK
+Page 19: VI. CONCLUSION AND FURTHER WORK
+Page 19: VI. CONCLUSION AND FURTHER WORK
+Page 19: VI. CONCLUSION AND FURTHER WORK
+Page 22: Table 7 presents examples of Balas-speciﬁc mapping rules.
+Page 22: V. Vyatkin, ‘‘Towards semi-automatic generation of a steady state digital
+Page 22: Table 7 presents examples of Balas-speciﬁc mapping rules.
+Page 22: V. Vyatkin, ‘‘Towards semi-automatic generation of a steady state digital
+Page 22: Table 7 presents examples of Balas-speciﬁc mapping rules.
+Page 22: V. Vyatkin, ‘‘Towards semi-automatic generation of a steady state digital
+Page 22: Table 7 presents examples of Balas-speciﬁc mapping rules.
+Page 22: V. Vyatkin, ‘‘Towards semi-automatic generation of a steady state digital
+Page 23: V. Vyatkin, ‘‘Automatic generation of a high-ﬁdelity dynamic thermal-
+Page 23: V. Vyatkin, ‘‘Automatic generation of a high-ﬁdelity dynamic thermal-
+Page 23: V. Vyatkin, ‘‘Automatic generation of a high-ﬁdelity dynamic thermal-
