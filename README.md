@@ -15,10 +15,10 @@ This repository houses the complete engineering deliverables and interactive **I
 The project is developed by **Group 7B** in the Department of Chemical Engineering at Kwame Nkrumah University of Science and Technology (KNUST), supervised by **Dr. Mary Mensah**.
 
 ### 👥 Group Members (Group 7B)
-- **AMOAH, Kelvin** (ID: 1933122) — Ball Mill Grinding Circuit & Comminution Design
-- **DARKO, Melissa Afriyie** (ID: 1936822) — Basicity Adjustment Reactor & Polymerization Design
-- **GYASI-DENTEH, Prince Sugar** (ID: 1938022) — Reductive Roasting Rotary Kiln & Off-gas Design
-- **OSABUTEY, Sylvester Nii Abbey** (ID: 1940922) — Two-Stage Jacketed Digestion CSTR Design
+- **AMOAH, Kelvin** — Ball Mill Grinding Circuit & Comminution Design
+- **DARKO, Melissa Afriyie** — Basicity Adjustment Reactor & Polymerization Design
+- **GYASI-DENTEH, Prince Sugar** — Reductive Roasting Rotary Kiln & Off-gas Design
+- **OSABUTEY, Sylvester Nii Abbey** — Two-Stage Jacketed Digestion CSTR Design
 
 ---
 
