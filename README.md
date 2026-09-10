@@ -8,13 +8,13 @@
 
 ---
 
-## 📋 Project Overview
+## Project Overview
 
 This repository houses the complete engineering deliverables and interactive **Industrial Digital Twin** for a **30,000 Tonnes Per Annum (TPA)** Poly-Aluminium Chloride ($\text{Al}_n(\text{OH})_m\text{Cl}_{3n-m}$) chemical production facility utilizing raw bauxite from the Awaso deposits in the Western North Region of Ghana.
 
 The project is developed by **Group 7B** in the Department of Chemical Engineering at Kwame Nkrumah University of Science and Technology (KNUST), supervised by **Dr. Mary Mensah**.
 
-### 👥 Group Members (Group 7B)
+### Group Members (Group 7B)
 - **AMOAH, Kelvin** — Ball Mill Grinding Circuit & Comminution Design
 - **DARKO, Melissa Afriyie** — Basicity Adjustment Reactor & Polymerization Design
 - **GYASI-DENTEH, Prince Sugar** — Reductive Roasting Rotary Kiln & Off-gas Design
@@ -22,7 +22,7 @@ The project is developed by **Group 7B** in the Department of Chemical Engineeri
 
 ---
 
-## 🏭 Digital Twin Features
+## Digital Twin Features
 
 The web-based digital twin runs directly in modern web browsers with **zero build steps** and **zero server costs**, designed for direct deployment to **GitHub Pages**.
 
@@ -42,7 +42,7 @@ The web-based digital twin runs directly in modern web browsers with **zero buil
 
 ---
 
-## 🚀 Quick Start (Run Locally)
+## Quick Start (Run Locally)
 
 You do not need Node.js, Webpack, or npm to run the digital twin. It uses native ES6 JavaScript modules and standard CSS variables.
 
@@ -61,7 +61,7 @@ Right-click on `index.html` and select **Open with Live Server**.
 
 ---
 
-## 🌐 Deploying to GitHub Pages (Zero-Cost Hosting)
+## Deploying to GitHub Pages (Zero-Cost Hosting)
 
 To make the Digital Twin accessible anywhere in the world at `https://<username>.github.io/<repo-name>/`:
 
@@ -73,7 +73,7 @@ To make the Digital Twin accessible anywhere in the world at `https://<username>
 
 ---
 
-## 📂 Repository Layout
+## Repository Layout
 
 ```
 PAC_DTwin/
@@ -104,7 +104,7 @@ PAC_DTwin/
 
 ---
 
-## 📐 Engineering Standards Reference
+## Engineering Standards Reference
 
 - **ISO 10628-2**: Diagrams for the chemical and petrochemical industry — Graphical symbols.
 - **ANSI/ISA-5.1-2009**: Instrumentation Symbols and Identification.
