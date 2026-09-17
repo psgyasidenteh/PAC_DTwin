@@ -21,7 +21,8 @@ export class PidRenderer {
       interlocks: true
     };
 
-    this.zoom = 1.0;
+    const isMobile = window.innerWidth <= 768;
+    this.zoom = isMobile ? 0.5 : 1.0;
     this.panX = 0;
     this.panY = 0;
     this.isDragging = false;
@@ -1202,7 +1203,87 @@ export class PidRenderer {
         this.isDragging = false;
         if (canvasWrap) canvasWrap.style.cursor = "grab";
       });
+
+      // 7. Touch Gestures: 1-Finger Drag & 2-Finger Pinch Zoom
+      let initialPinchDistance = null;
+      let initialPinchZoom = 1.0;
+
+      canvasWrap.addEventListener("touchstart", (e) => {
+        if (e.touches.length === 1) {
+          this.isDragging = true;
+          this.startX = e.touches[0].clientX - this.panX;
+          this.startY = e.touches[0].clientY - this.panY;
+        } else if (e.touches.length === 2) {
+          this.isDragging = false;
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          initialPinchDistance = Math.hypot(dx, dy);
+          initialPinchZoom = this.zoom;
+        }
+      }, { passive: false });
+
+      canvasWrap.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 1 && this.isDragging) {
+          e.preventDefault();
+          this.panX = e.touches[0].clientX - this.startX;
+          this.panY = e.touches[0].clientY - this.startY;
+          this.updateTransform();
+        } else if (e.touches.length === 2 && initialPinchDistance) {
+          e.preventDefault();
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const currentDist = Math.hypot(dx, dy);
+          const scale = currentDist / initialPinchDistance;
+          this.zoom = Math.min(Math.max(initialPinchZoom * scale, 0.35), 3.5);
+          this.updateTransform();
+        }
+      }, { passive: false });
+
+      canvasWrap.addEventListener("touchend", (e) => {
+        if (e.touches.length === 0) {
+          this.isDragging = false;
+          initialPinchDistance = null;
+        } else if (e.touches.length === 1) {
+          this.isDragging = true;
+          this.startX = e.touches[0].clientX - this.panX;
+          this.startY = e.touches[0].clientY - this.panY;
+          initialPinchDistance = null;
+        }
+      });
+
+      canvasWrap.addEventListener("touchcancel", () => {
+        this.isDragging = false;
+        initialPinchDistance = null;
+      });
     }
+  }
+
+  updateTransform() {
+    const g = this.container.querySelector("#pid-transform-group");
+    if (g) {
+      g.setAttribute(
+        "transform",
+        `translate(${this.panX}, ${this.panY}) scale(${this.zoom})`
+      );
+    }
+  }
+
+  resetView() {
+    const isMobile = window.innerWidth <= 768;
+    this.zoom = isMobile ? 0.5 : 1.0;
+    this.panX = 0;
+    this.panY = 0;
+    this.updateTransform();
+  }
+
+  zoomIn() {
+    this.zoom = Math.min(this.zoom * 1.2, 3.5);
+    this.updateTransform();
+  }
+
+  zoomOut() {
+    this.zoom = Math.max(this.zoom * 0.8, 0.35);
+    this.updateTransform();
   }
 
   updateTelemetry() {

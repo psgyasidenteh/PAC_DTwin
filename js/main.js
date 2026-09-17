@@ -62,7 +62,27 @@ class DigitalTwinApp {
   }
 
   initUi() {
-    // 1. View Navigation
+    // Mobile Drawer Controls
+    const mobileMenuBtn = document.getElementById("btn-mobile-menu");
+    const sidebarCloseBtn = document.getElementById("btn-sidebar-close");
+    const sidebarBackdrop = document.getElementById("sidebar-backdrop");
+    const sidebar = document.getElementById("scada-sidebar");
+
+    const openMobileSidebar = () => {
+      if (sidebar) sidebar.classList.add("mobile-open");
+      if (sidebarBackdrop) sidebarBackdrop.classList.add("active");
+    };
+
+    const closeMobileSidebar = () => {
+      if (sidebar) sidebar.classList.remove("mobile-open");
+      if (sidebarBackdrop) sidebarBackdrop.classList.remove("active");
+    };
+
+    if (mobileMenuBtn) mobileMenuBtn.addEventListener("click", openMobileSidebar);
+    if (sidebarCloseBtn) sidebarCloseBtn.addEventListener("click", closeMobileSidebar);
+    if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", closeMobileSidebar);
+
+    // 1. View Navigation (Sidebar links)
     document.querySelectorAll(".nav-link").forEach(link => {
       link.addEventListener("click", (e) => {
         e.preventDefault();
@@ -73,17 +93,39 @@ class DigitalTwinApp {
         document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
         link.classList.add("active");
 
+        closeMobileSidebar();
         this.switchView(view, { area, subtab });
       });
     });
 
-    // 2. Feed Controls Modal Trigger
+    // 2. Mobile Bottom Navigation Bar (1-Tap Switching)
+    document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const target = btn.getAttribute("data-mobile-target");
+        closeMobileSidebar();
+
+        if (target === "pfd") {
+          this.switchView("pfd");
+          document.querySelectorAll(".nav-link").forEach(l => {
+            l.classList.toggle("active", l.getAttribute("data-view") === "pfd");
+          });
+        } else if (target === "soft-sensors" || target === "hazop" || target === "economics") {
+          this.switchView("analytics", { subtab: target });
+          document.querySelectorAll(".nav-link").forEach(l => {
+            l.classList.toggle("active", l.getAttribute("data-subtab") === target);
+          });
+        }
+      });
+    });
+
+    // 3. Feed Controls Modal Trigger
     const btnFeed = document.getElementById("btn-open-feed-controls");
     if (btnFeed) {
       btnFeed.addEventListener("click", () => this.feedControlsModal.toggle());
     }
 
-    // 3. Clock update
+    // 4. Clock update
     setInterval(() => {
       const clockEl = document.getElementById("scada-clock");
       if (clockEl) {
@@ -91,7 +133,7 @@ class DigitalTwinApp {
       }
     }, 1000);
 
-    // 4. Alarm Acknowledge
+    // 5. Alarm Acknowledge
     const btnAck = document.getElementById("btn-ack-alarms");
     if (btnAck) {
       btnAck.addEventListener("click", () => {
@@ -100,12 +142,13 @@ class DigitalTwinApp {
       });
     }
 
-    // 5. Keyboard Shortcuts (F2: Ack, Esc: Close modals)
+    // 6. Keyboard Shortcuts (F2: Ack, Esc: Close modals)
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.faceplateModal.close();
         this.feedControlsModal.close();
         this.inspectorDrawer.close();
+        closeMobileSidebar();
       }
       if (e.key === "F2") {
         if (btnAck) btnAck.click();
@@ -138,6 +181,18 @@ class DigitalTwinApp {
         this.analyticsView.render();
       }
     }
+
+    // Synchronize Mobile Bottom Navigation Active Indicators
+    document.querySelectorAll(".mobile-nav-btn").forEach(btn => {
+      const target = btn.getAttribute("data-mobile-target");
+      if (view === "pfd" && target === "pfd") {
+        btn.classList.add("active");
+      } else if (view === "analytics" && options.subtab && target === options.subtab) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
   }
 
   startEngine() {

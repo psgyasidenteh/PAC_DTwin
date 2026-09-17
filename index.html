@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
   <title>30,000 TPA PAC Chemical Plant Digital Twin | Awaso, Ghana</title>
   <meta name="description"
     content="Industrial Process Digital Twin for 30,000 TPA Poly-Aluminium Chloride (PAC) Plant in Awaso, Ghana. Dual-Twin IIC Architecture, Aspen Plus Kinetics, and Real-Time SCADA Flowsheet." />
@@ -16,21 +16,32 @@
     rel="stylesheet" />
 
   <!-- SCADA Stylesheets -->
-  <link rel="stylesheet" href="styles/scada-tokens.css" />
-  <link rel="stylesheet" href="styles/layout.css" />
-  <link rel="stylesheet" href="styles/components.css" />
-  <link rel="stylesheet" href="styles/flowsheet.css" />
+  <link rel="stylesheet" href="styles/scada-tokens.css?v=2.4.0" />
+  <link rel="stylesheet" href="styles/layout.css?v=2.4.0" />
+  <link rel="stylesheet" href="styles/components.css?v=2.4.0" />
+  <link rel="stylesheet" href="styles/flowsheet.css?v=2.4.0" />
 </head>
 
 <body>
   <div id="app-container">
     <!-- 1. MISSION-CONTROL HEADER -->
     <header class="scada-header">
-      <div class="header-brand">
-        <div class="brand-badge">PAC</div>
-        <div class="brand-meta">
-          <span class="brand-title">Poly-Aluminium Chloride Plant</span>
-          <span class="brand-subtitle">Industrial Process Digital Twin &bull; Awaso, Western North, Ghana</span>
+      <div style="display: flex; align-items: center; gap: var(--space-3); min-width: 0;">
+        <!-- Mobile Navigation Menu Toggle -->
+        <button id="btn-mobile-menu" class="btn-mobile-menu" aria-label="Toggle Navigation Drawer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+
+        <div class="header-brand">
+          <div class="brand-badge">PAC</div>
+          <div class="brand-meta">
+            <span class="brand-title">Poly-Aluminium Chloride Plant</span>
+            <span class="brand-subtitle">Industrial Process Digital Twin &bull; Awaso, Western North, Ghana</span>
+          </div>
         </div>
       </div>
 
@@ -42,9 +53,7 @@
         </div>
 
         <!-- Live UTC Clock -->
-        <div
-          style="font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); background: #0c1018; padding: 6px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-subtle);"
-          id="scada-clock">
+        <div class="scada-clock-badge" id="scada-clock">
           12:00:00 UTC
         </div>
 
@@ -55,7 +64,8 @@
             <path
               d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
-          Feed Boundaries & Design Specs
+          <span class="btn-text-desktop">Feed Boundaries & Design Specs</span>
+          <span class="btn-text-mobile">Feeds</span>
         </button>
       </div>
     </header>
@@ -101,8 +111,25 @@
 
     <!-- 3. MAIN WORKSPACE -->
     <div class="scada-body">
+      <!-- Backdrop for mobile slide-out drawer -->
+      <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
       <!-- LEFT SIDEBAR NAVIGATION (Ordered from Master PFD -> Area 100 -> Area 700) -->
-      <aside class="scada-sidebar">
+      <aside class="scada-sidebar" id="scada-sidebar">
+        <!-- Mobile Sidebar Close Header -->
+        <div class="sidebar-mobile-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="brand-badge" style="width: 24px; height: 24px; font-size: 11px;">PAC</div>
+            <span style="font-weight: 700; font-size: 12px; color: var(--text-primary);">Navigation Menu</span>
+          </div>
+          <button id="btn-sidebar-close" class="btn-sidebar-close" aria-label="Close Navigation Drawer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
         <!-- Section 1: Process Flowsheets (Strict Numerical Hierarchy) -->
         <div>
           <div class="nav-section-title">Process Flowsheets</div>
@@ -299,10 +326,45 @@
           style="height: 24px; padding-inline: 8px; font-size: 10px;">Acknowledge (F2)</button>
       </div>
     </div>
+
+    <!-- 5. MOBILE APP BOTTOM NAVIGATION BAR (Visible on <= 768px) -->
+    <nav id="mobile-bottom-nav" class="mobile-bottom-nav" aria-label="Mobile Navigation">
+      <button class="mobile-nav-btn active" data-mobile-target="pfd" title="Plant Flowsheet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+        <span>Flowsheet</span>
+      </button>
+      <button class="mobile-nav-btn" data-mobile-target="soft-sensors" title="EKF Soft Sensors">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M16.2 7.8a6 6 0 0 1 0 8.5m-8.4 0a6 6 0 0 1 0-8.5" />
+        </svg>
+        <span>Sensors</span>
+      </button>
+      <button class="mobile-nav-btn" data-mobile-target="hazop" title="HAZOP Safety Simulator">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <circle cx="12" cy="16" r="0.75" fill="currentColor" />
+        </svg>
+        <span>HAZOP</span>
+      </button>
+      <button class="mobile-nav-btn" data-mobile-target="economics" title="Ghana Economics & ESG">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+          <polyline points="16 7 22 7 22 13" />
+        </svg>
+        <span>Economics</span>
+      </button>
+    </nav>
   </div>
 
   <!-- Main ES6 Application Entrypoint -->
-  <script type="module" src="js/main.js?v=2.3.1"></script>
+  <script type="module" src="js/main.js?v=2.4.0"></script>
 </body>
 
 </html>

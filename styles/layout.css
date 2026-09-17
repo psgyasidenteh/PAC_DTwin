@@ -361,3 +361,377 @@
   accent-color: var(--color-cyan);
   cursor: pointer;
 }
+
+/* ==========================================================================
+   DESKTOP DEFAULT RULES FOR MOBILE-SPECIFIC ELEMENTS
+   Ensure zero visual leaks or layout disruptions on desktop/laptop views
+   ========================================================================== */
+.btn-mobile-menu {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+.sidebar-mobile-header {
+  display: none;
+}
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE BREAKPOINT (< 768px)
+   Adapts for iOS (Safari/Chrome) and Android (Chrome/Firefox)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Header Adjustments */
+  .scada-header {
+    height: 48px;
+    min-height: 48px;
+    padding-inline: 10px;
+    gap: 8px;
+  }
+
+  .btn-mobile-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    background: var(--bg-surface-1);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .btn-mobile-menu:hover,
+  .btn-mobile-menu:active {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+
+  .btn-mobile-menu svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .header-brand {
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .brand-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+    min-width: 28px;
+  }
+
+  .brand-meta {
+    overflow: hidden;
+  }
+
+  .brand-title {
+    font-size: 12.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 170px;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-actions .status-pill {
+    padding: 3px 7px;
+    font-size: 10px;
+  }
+
+  .header-actions .status-pill span:last-child {
+    display: none; /* Hide 'OPERATIONAL' text on small mobile, keep dot + 'RUN' */
+  }
+
+  .header-actions #btn-open-feed-specs {
+    height: 30px;
+    min-height: 30px;
+    padding-inline: 8px;
+    font-size: 10.5px;
+  }
+
+  .header-actions #btn-open-feed-specs span {
+    display: none;
+  }
+
+  .header-actions #btn-open-feed-specs::after {
+    content: "Specs";
+  }
+
+  .header-actions #btn-reset-dtwin {
+    height: 30px;
+    min-height: 30px;
+    padding-inline: 8px;
+    font-size: 10px;
+  }
+
+  /* 2. KPI Ribbon -> Horizontal Touch-Swipe Strip */
+  .kpi-ribbon {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    height: 40px;
+    min-height: 40px;
+    padding-inline: 8px;
+    gap: 6px;
+    scrollbar-width: none;
+  }
+
+  .kpi-ribbon::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kpi-item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-width: 88px;
+    padding-inline: 6px;
+    gap: 4px;
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .kpi-label {
+    font-size: 8.5px;
+  }
+
+  .kpi-value {
+    font-size: 12px;
+  }
+
+  .kpi-unit {
+    font-size: 9px;
+  }
+
+  /* 3. Main Workspace & Off-Canvas Navigation Drawer */
+  .scada-body {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(3, 7, 18, 0.72);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 95;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sidebar-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .scada-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 285px;
+    max-width: 86vw;
+    height: 100%;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.75);
+    background: #080c14;
+    border-right: 1px solid var(--border-medium);
+    padding: 14px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scada-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .btn-sidebar-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .btn-sidebar-close:hover,
+  .btn-sidebar-close:active {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+  }
+
+  .btn-sidebar-close svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Full screen canvas viewport */
+  .scada-viewport,
+  #main-viewport {
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1;
+  }
+
+  /* Compact Floating Flowsheet Controls */
+  .viewport-toolbar {
+    top: 6px;
+    right: 6px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .viewport-toolbar .btn-control {
+    height: 28px;
+    min-height: 28px;
+    padding-inline: 7px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .viewport-toolbar .btn-control svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .layer-filter-bar {
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+    padding: 5px 8px;
+    font-size: 10px;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .layer-filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 4. Alarm Banner on Mobile */
+  .alarm-banner {
+    height: 26px;
+    min-height: 26px;
+    font-size: 9.5px;
+    padding-inline: 8px;
+  }
+
+  .alarm-item {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #alarm-banner-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 180px;
+    display: inline-block;
+  }
+
+  /* 5. Mobile Native App Bottom Navigation Bar */
+  .mobile-bottom-nav {
+    display: flex;
+    height: 52px;
+    min-height: 52px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(10, 14, 23, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-medium);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 85;
+    flex-shrink: 0;
+  }
+
+  .mobile-nav-btn {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 9.5px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s ease, transform 0.1s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+  }
+
+  .mobile-nav-btn:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-nav-btn.active {
+    color: var(--color-cyan);
+    font-weight: 700;
+  }
+
+  .mobile-nav-btn.active svg {
+    filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.5));
+  }
+}
