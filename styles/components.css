@@ -973,6 +973,216 @@
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
 }
 
+/* IIC Dual-Twin Registry & APM Cockpit */
+.dual-twin-card {
+  background: linear-gradient(135deg, #0a0f1d 0%, #060913 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dual-twin-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.iso10816-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iso10816-pill.zone-a {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.iso10816-pill.zone-b {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.iso10816-pill.zone-c {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.iso10816-pill.zone-d {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.stream-chip-link {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.stream-chip-link:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.inst-chip-link {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.inst-chip-link:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #fbbf24;
+  color: #ffffff;
+}
+
+/* SCADA Industrial Global Hover Tooltip & Popovers */
+.scada-tooltip-popup {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  background: rgba(10, 16, 28, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 12px rgba(56, 189, 248, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  max-width: 320px;
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1.45;
+  transition: opacity 0.12s ease-out;
+  transform: translateZ(0);
+}
+
+.scada-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scada-tooltip-cat {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  font-family: var(--font-mono);
+}
+
+.scada-tooltip-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.scada-tooltip-body {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.scada-tooltip-body strong {
+  color: #ffffff;
+}
+
+/* Tooltip Trigger Helpers */
+.tooltip-trigger-label {
+  cursor: help;
+  border-bottom: 1px dotted rgba(148, 163, 184, 0.45);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.tooltip-trigger-label:hover {
+  color: #ffffff !important;
+  border-bottom-color: #38bdf8;
+}
+
+.tooltip-info-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  font-size: 9.5px;
+  font-weight: 700;
+  margin-left: 4px;
+  cursor: help;
+  vertical-align: middle;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.tooltip-info-badge:hover {
+  background: #38bdf8;
+  color: #020617;
+  transform: scale(1.15);
+}
+
+.tooltip-pill-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: help;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.tooltip-pill-compact:hover {
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.08);
+}
+
 /* Parameter Grid & Interactive Cards */
 .econ-param-grid {
   display: grid;
@@ -1194,5 +1404,16 @@
 
   .pid-toolbar > div:last-child::-webkit-scrollbar {
     display: none;
+  }
+
+  /* 9. IIC Dual-Twin Registry Mobile Overrides */
+  .dual-twin-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .dual-twin-card-body {
+    grid-template-columns: 1fr !important;
+  }
+  .fleet-apm-ribbon {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }

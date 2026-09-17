@@ -16,9 +16,13 @@ import { FaceplateModal } from './ui/faceplateModal.js?v=2.3.1';
 import { FeedControlsModal } from './ui/feedControlsModal.js?v=2.3.1';
 import { InspectorDrawer } from './ui/inspectorDrawer.js?v=2.3.1';
 import { AnalyticsView } from './ui/analyticsView.js?v=2.3.1';
+import { TooltipManager } from './ui/tooltipManager.js?v=2.3.1';
 
 class DigitalTwinApp {
   constructor() {
+    // 0. Global Industrial Tooltip & Popover Engine
+    this.tooltipManager = new TooltipManager();
+
     // 1. Initialize Simulation & Physics Engines
     this.engine = new SimulationEngine();
     this.hazopSim = new HazopSimulator(this.engine);

@@ -639,7 +639,192 @@ export class SimulationEngine {
       }
     }
 
+    // -------------------------------------------------------------
+    // 8. IIC Dual-Twin (EDT / PiP) Real-Time Telemetry & Dynamics
+    // -------------------------------------------------------------
+    this.updateEquipmentTwins(dt);
+
     this.notify();
+  }
+
+  /**
+   * Updates all 18 IIC Equipment Digital Twins (EDT) and Product-in-Process (PiP) twins
+   * during each simulation cycle, ensuring 60fps dynamic telemetry and load scaling.
+   */
+  updateEquipmentTwins(dt) {
+    const u = this.capacityUtilization ?? 1.0;
+
+    for (const [tag, eq] of Object.entries(this.equipment)) {
+      if (!eq || !eq.edt) continue;
+
+      const isRunning = eq.edt.status === "RUNNING";
+
+      // 1. Dynamic Electrical Power (kW) & Motor Amperage (A)
+      if (!isRunning) {
+        eq.edt.activePowerKw = 0.0;
+        eq.edt.motorCurrentA = 0.0;
+      } else if (eq.edt.ratedPowerKw > 0) {
+        // Power scales with capacity utilization and process load
+        const loadFactor = Math.min(1.15, Math.max(0.4, u));
+        const baseRatio = (tag === "ML-501") ? 0.76 : (tag === "RK-201" ? 0.68 : 0.65);
+        const powerNoise = (Math.random() - 0.5) * 0.08;
+        const dynamicKw = Math.max(0.2, (eq.edt.ratedPowerKw * baseRatio * loadFactor) + powerNoise);
+        eq.edt.activePowerKw = Number(dynamicKw.toFixed(2));
+
+        // 3-Phase Amperage: I = (P * 1000) / (sqrt(3) * 415 * PF)
+        const pf = eq.edt.powerFactor || 0.84;
+        const amps = (dynamicKw * 1000.0) / (Math.sqrt(3) * 415.0 * pf);
+        eq.edt.motorCurrentA = Number(amps.toFixed(1));
+      }
+
+      // 2. Mechanical Vibration (mm/s RMS) & ISO 10816-3 Severity Classification
+      if (!isRunning) {
+        eq.edt.vibrationRms = 0.12;
+        eq.edt.vibrationMmS = 0.12;
+        eq.edt.vibrationSeverity = "Zone A: Good (<2.3 mm/s)";
+      } else {
+        const nominalVib = (INITIAL_EQUIPMENT[tag]?.edt?.vibrationRms) || eq.edt.vibrationRms || 1.2;
+        const vibNoise = (Math.random() - 0.5) * 0.06;
+        // Wear contribution: elevated wear (> 40%) progressively increases vibration
+        const wearPenalty = Math.max(0, ((eq.edt.wearPercent || 0) - 30) / 70) * 1.4;
+        const currentVib = Math.max(0.2, Number((nominalVib + vibNoise + wearPenalty).toFixed(2)));
+        eq.edt.vibrationRms = currentVib;
+        eq.edt.vibrationMmS = currentVib;
+
+        if (currentVib < 2.3) {
+          eq.edt.vibrationSeverity = "Zone A: Good (<2.3 mm/s)";
+        } else if (currentVib < 4.5) {
+          eq.edt.vibrationSeverity = "Zone B: Unrestricted (2.3-4.5 mm/s)";
+        } else if (currentVib < 7.1) {
+          eq.edt.vibrationSeverity = "Zone C: Restricted Warning (4.5-7.1 mm/s)";
+        } else {
+          eq.edt.vibrationSeverity = "Zone D: Dangerous Trip Risk (>7.1 mm/s)";
+        }
+      }
+
+      // 3. Drive Bearing Thermal Gradient (°C)
+      if (isRunning && eq.edt.bearingTempC !== undefined) {
+        const tempNoise = (Math.random() - 0.5) * 0.15;
+        const loadThermalBoost = (u - 1.0) * 3.5;
+        const baseBearing = INITIAL_EQUIPMENT[tag]?.edt?.bearingTempC || eq.edt.bearingTempC;
+        eq.edt.bearingTempC = Number((baseBearing + tempNoise + Math.max(0, loadThermalBoost)).toFixed(1));
+      }
+
+      // 4. Wear Progression & Remaining Useful Life (RUL)
+      if (isRunning) {
+        // Simulation wear advancement
+        const wearIncrement = 0.00004 * dt;
+        if (eq.edt.wearPercent !== undefined && eq.edt.wearPercent < 100) {
+          eq.edt.wearPercent = Number((eq.edt.wearPercent + wearIncrement).toFixed(3));
+        }
+        if (eq.edt.remainingUsefulLifeHours !== undefined && eq.edt.remainingUsefulLifeHours > 0) {
+          eq.edt.remainingUsefulLifeHours = Math.max(0, Number((eq.edt.remainingUsefulLifeHours - (dt / 36.0)).toFixed(1)));
+          eq.edt.remainingLinerHours = eq.edt.remainingUsefulLifeHours;
+        }
+      }
+
+      // 5. Composite Mechanical Health Index (0 - 100%)
+      const wearIndex = Math.max(0, 100 - (eq.edt.wearPercent || 0));
+      const vibIndex = Math.max(0, 100 - ((eq.edt.vibrationRms || 1.0) / 7.1) * 100);
+      const thermalIndex = (eq.edt.bearingTempC && eq.edt.bearingTempC > 65)
+        ? Math.max(0, 100 - (eq.edt.bearingTempC - 65) * 2.5)
+        : 100;
+      eq.edt.healthIndex = Number((wearIndex * 0.4 + vibIndex * 0.4 + thermalIndex * 0.2).toFixed(1));
+
+      // 6. Product-in-Process (PiP) Twin Synchronization
+      if (eq.pip) {
+        // Mass throughput scales with capacity utilization
+        const nominalThroughput = INITIAL_EQUIPMENT[tag]?.pip?.massThroughputKgH;
+        if (nominalThroughput) {
+          eq.pip.massThroughputKgH = Number((nominalThroughput * u).toFixed(1));
+        }
+
+        // Real-time synchronization with process instrumentation
+        if (tag === "RK-201" && this.instruments["TIC-201"]) {
+          eq.pip.processTempC = this.instruments["TIC-201"].pv;
+          eq.pip.burningZoneTempC = this.instruments["TIC-201"].pv;
+        } else if (tag === "R-601" && this.instruments["TIC-601"]) {
+          eq.pip.processTempC = this.instruments["TIC-601"].pv;
+          eq.pip.operatingTempC = this.instruments["TIC-601"].pv;
+        } else if (tag === "R-602" && this.instruments["TIC-602"]) {
+          eq.pip.processTempC = this.instruments["TIC-602"].pv;
+          eq.pip.operatingTempC = this.instruments["TIC-602"].pv;
+        } else if (tag === "R-701" && this.instruments["TIC-701"]) {
+          eq.pip.processTempC = this.instruments["TIC-701"].pv;
+          eq.pip.operatingTempC = this.instruments["TIC-701"].pv;
+          if (this.instruments["pHIC-701"]) {
+            eq.pip.pH = this.instruments["pHIC-701"].pv;
+          }
+        } else if (tag === "R-702" && this.instruments["TIC-702"]) {
+          eq.pip.processTempC = this.instruments["TIC-702"].pv;
+          eq.pip.operatingTempC = this.instruments["TIC-702"].pv;
+        }
+      }
+    }
+  }
+
+  /**
+   * Simulates a full preventative maintenance overhaul for an equipment asset,
+   * resetting wear to 0%, restoring pristine RUL hours, and clearing alerts.
+   */
+  overhaulEquipment(tag) {
+    const eq = this.equipment[tag];
+    const initial = INITIAL_EQUIPMENT[tag];
+    if (!eq || !eq.edt) return false;
+
+    eq.edt.wearPercent = 0.0;
+    eq.edt.remainingUsefulLifeHours = initial?.edt?.remainingUsefulLifeHours || 8000;
+    eq.edt.remainingLinerHours = eq.edt.remainingUsefulLifeHours;
+    eq.edt.lubricationHealthPercent = 100.0;
+    eq.edt.vibrationRms = initial?.edt?.vibrationRms || 1.1;
+    eq.edt.vibrationMmS = eq.edt.vibrationRms;
+    eq.edt.vibrationSeverity = "Zone A: Good (<2.3 mm/s)";
+    eq.edt.healthIndex = 99.5;
+
+    // Log ISA-18.2 maintenance audit record
+    if (this.alarmManager && this.alarmManager.logEvent) {
+      this.alarmManager.logEvent({
+        timestamp: new Date().toISOString(),
+        tag: tag,
+        type: "MAINTENANCE_OVERHAUL",
+        message: `Preventative Maintenance & Component Overhaul completed for ${eq.name} (${tag}). Wear reset to 0%, RUL restored to ${eq.edt.remainingUsefulLifeHours} hrs.`,
+        priority: "LOW"
+      });
+    }
+
+    this.notify();
+    return true;
+  }
+
+  /**
+   * Sets equipment state directly or triggers FSM start/stop
+   */
+  setEquipmentOperatingState(tag, targetState) {
+    const fsm = this.fsms ? this.fsms[tag] : null;
+    const eq = this.equipment[tag];
+    if (!eq || !eq.edt) return false;
+
+    if (fsm) {
+      const fsmContext = {
+        instruments: this.instruments,
+        equipment: this.equipment,
+        streams: this.streams,
+        fsms: this.fsms
+      };
+      if (targetState === "RUNNING") {
+        fsm.start(fsmContext);
+      } else if (targetState === "STOPPED") {
+        fsm.stop();
+      } else if (targetState === "RESET") {
+        fsm.reset();
+      }
+    } else {
+      eq.edt.status = targetState;
+      eq.edt.fsmState = targetState;
+    }
+
+    this.notify();
+    return true;
   }
 
   /**

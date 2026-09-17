@@ -29,6 +29,20 @@ export class AnalyticsView {
     this.econCurrency = "USD"; // 'USD' | 'GHS'
     this.econParamCategory = "feedstock"; // 'feedstock' | 'commercial' | 'utilities' | 'finance'
 
+    // IIC Dual-Twin Registry & APM Sub-navigation & State
+    this.twinActiveArea = "all"; // 'all', '100', '200', '300', '400', '500', '600', '700'
+    this.twinStatusFilter = "all"; // 'all', 'RUNNING', 'ATTENTION', 'STANDBY'
+    this.twinSearchQuery = "";
+  }
+
+  escapeAttr(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   showTab(tabName) {
@@ -216,23 +230,28 @@ export class AnalyticsView {
                 <!-- Telemetry & Diagnostic Metrics -->
                 <div style="display: flex; flex-direction: column; gap: 3px; background: #080c14; padding: 6px 8px; border-radius: var(--radius-xs); border: 1px solid rgba(255,255,255,0.03);">
                   <div class="ekf-stat-row">
-                    <span style="color: var(--text-tertiary);">Physical ${s.measTag}:</span>
+                    <span class="tooltip-trigger-label" data-tooltip="Raw hardware transmitter measurement before Kalman state fusion." data-tooltip-title="Physical Transmitter" data-tooltip-cat="SCADA" style="color: var(--text-tertiary);">Physical ${s.measTag}:</span>
                     <span id="ss-meas-${s.tag}" style="font-family: var(--font-mono); color: #ffffff;">${physVal} ${s.measUnit}</span>
                   </div>
                   <div class="ekf-stat-row">
-                    <span style="color: var(--text-tertiary);">95% Confidence (CI):</span>
+                    <span class="tooltip-trigger-label" data-tooltip="Dynamic 95% confidence interval computed from instantaneous state covariance P_k (±1.96 × √P_k). Narrows as observer converges." data-tooltip-title="95% Confidence Interval" data-tooltip-cat="EKF" style="color: var(--text-tertiary);">95% Confidence (CI):</span>
                     <span id="ss-bounds-${s.tag}" style="font-family: var(--font-mono); color: var(--text-secondary);">[${lowerBound}, ${upperBound}]</span>
                   </div>
                   <div class="ekf-stat-row">
-                    <span style="color: var(--text-tertiary);">Innovation NIS (χ²):</span>
+                    <span class="tooltip-trigger-label" data-tooltip="Normalized Innovation Squared (NIS = y_k^T S_k^-1 y_k). Compared against chi-square threshold (χ²_0.05 = 3.84). Exceeding values trigger outlier gating." data-tooltip-title="Innovation NIS (χ²)" data-tooltip-cat="STATISTICS" style="color: var(--text-tertiary);">Innovation NIS (χ²):</span>
                     <span id="ss-nis-${s.tag}" style="font-family: var(--font-mono); color: ${s.isOutlierRejected ? 'var(--color-rose)' : 'var(--color-cyan)'};">${s.nis !== undefined ? s.nis.toFixed(3) : '0.000'}</span>
                   </div>
                 </div>
 
-                <!-- Physics Description -->
-                <p style="font-size: 10.5px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
-                  ${s.description}
-                </p>
+                <!-- Observer Physics & Dynamics Popover Trigger -->
+                <div style="margin-top: 4px;">
+                  <span class="tooltip-pill-compact"
+                        data-tooltip="${this.escapeAttr(s.description)}"
+                        data-tooltip-title="${s.tag} Observer Dynamics"
+                        data-tooltip-cat="EKF">
+                    ℹ️ View Observer Dynamics & State Physics
+                  </span>
+                </div>
               </div>
             `;
           }).join('')}
@@ -1341,7 +1360,7 @@ export class AnalyticsView {
             return `
               <div class="econ-param-card ${isModified ? 'modified' : ''}" id="econ-card-${p.key}">
                 <div class="econ-param-header">
-                  <span class="econ-param-title" title="${p.key}">${p.name}</span>
+                  <span class="econ-param-title tooltip-trigger-label" data-tooltip="${this.escapeAttr(p.desc)}" data-tooltip-title="${this.escapeAttr(p.name)}" data-tooltip-cat="FINANCIAL">${p.name}</span>
                   <div style="display: flex; align-items: center; gap: 6px;">
                     ${driftHtml}
                     <div class="econ-param-input-wrapper">
@@ -1358,9 +1377,11 @@ export class AnalyticsView {
                   </div>
                 </div>
 
-                <p style="font-size: 10px; color: var(--text-tertiary); line-height: 1.35; margin: 0;">
-                  ${p.desc}
-                </p>
+                <div style="margin-top: 2px; margin-bottom: 2px;">
+                  <span class="tooltip-pill-compact" style="font-size: 9.5px; padding: 1px 6px;" data-tooltip="${this.escapeAttr(p.desc)}" data-tooltip-title="${this.escapeAttr(p.name)}" data-tooltip-cat="FINANCIAL">
+                    ℹ️ Sensitivity Impact Details
+                  </span>
+                </div>
 
                 <div style="margin-top: 4px;">
                   <input type="range"
@@ -2196,57 +2217,606 @@ export class AnalyticsView {
   }
 
   // =========================================================================
-  // 5. IIC DUAL-TWIN EQUIPMENT REGISTRY
+  // 5. IIC DUAL-TWIN EQUIPMENT REGISTRY & ASSET PERFORMANCE MANAGEMENT (APM)
   // =========================================================================
   renderEquipmentTwinRegistry() {
+    const allEq = Object.values(this.engine.equipment);
+    const totalAssets = allEq.length;
+    const runningCount = allEq.filter(e => e.edt?.status === "RUNNING").length;
+    const standbyCount = allEq.filter(e => e.edt?.status === "STANDBY" || e.edt?.status === "STOPPED").length;
+    const trippedCount = allEq.filter(e => e.edt?.status === "TRIPPED").length;
+    const totalActivePowerKw = allEq.reduce((acc, e) => acc + (e.edt?.activePowerKw || 0), 0);
+    const avgHealthIndex = totalAssets > 0 
+      ? allEq.reduce((acc, e) => acc + (e.edt?.healthIndex || 95), 0) / totalAssets
+      : 95.0;
+    const vibAlertCount = allEq.filter(e => (e.edt?.vibrationRms || 0) >= 4.5).length;
+    const attentionCount = allEq.filter(e => (e.edt?.healthIndex || 100) < 92 || (e.edt?.remainingUsefulLifeHours || 9999) < 3500).length;
+
+    // Filter by Area, Status, and Search Query
+    const filteredEq = allEq.filter(e => {
+      // Area filter
+      if (this.twinActiveArea !== "all" && String(e.area) !== String(this.twinActiveArea)) {
+        return false;
+      }
+      // Status filter
+      if (this.twinStatusFilter === "RUNNING" && e.edt?.status !== "RUNNING") {
+        return false;
+      }
+      if (this.twinStatusFilter === "STANDBY" && e.edt?.status === "RUNNING") {
+        return false;
+      }
+      if (this.twinStatusFilter === "ATTENTION" && (e.edt?.healthIndex || 100) >= 92 && (e.edt?.remainingUsefulLifeHours || 9999) >= 3500) {
+        return false;
+      }
+      // Search query
+      if (this.twinSearchQuery) {
+        const q = this.twinSearchQuery.toLowerCase().trim();
+        const matchTag = (e.tag || "").toLowerCase().includes(q);
+        const matchName = (e.name || "").toLowerCase().includes(q);
+        const matchType = (e.type || "").toLowerCase().includes(q);
+        const matchArea = (e.areaName || "").toLowerCase().includes(q);
+        if (!matchTag && !matchName && !matchType && !matchArea) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const areas = [
+      { id: "all", label: `All Areas (${totalAssets})` },
+      { id: "100", label: "Area 100: Comminution" },
+      { id: "200", label: "Area 200: Roasting" },
+      { id: "300", label: "Area 300: Dust APC" },
+      { id: "400", label: "Area 400: Magnetic" },
+      { id: "500", label: "Area 500: Wet Milling" },
+      { id: "600", label: "Area 600: Digestion & Filter" },
+      { id: "700", label: "Area 700: Basification & Silo" }
+    ];
+
     return `
-      <div class="control-card" style="padding: var(--space-3);">
-        <div style="margin-bottom: var(--space-3);">
-          <span class="control-card-title">IIC Dual-Twin Architecture: Equipment Digital Twin (EDT) vs Product-in-Process (PiP) Twin</span>
-          <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
-            Decoupled asset telemetry tracking physical equipment wear vs active chemical/mineralogical transformations.
-          </p>
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- TOP APM FLEET TELEMETRY RIBBON -->
+        <div class="fleet-apm-ribbon" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
+          <!-- Fleet Health Index -->
+          <div class="control-card" style="padding: 12px 14px; background: linear-gradient(135deg, #0c1524 0%, #080c14 100%);">
+            <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary);" class="tooltip-trigger-label" data-tooltip="Aggregated ISO 10816 mechanical health index across all 18 core plant assets." data-tooltip-title="Fleet Mechanical Health" data-tooltip-cat="APM">
+              Fleet Mechanical Health
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+              <span id="fleet-health-val" style="font-size: 26px; font-weight: 900; color: ${avgHealthIndex >= 90 ? 'var(--color-emerald)' : 'var(--color-amber)'}; font-family: var(--font-mono);">
+                ${avgHealthIndex.toFixed(1)}%
+              </span>
+              <span class="status-pill" style="font-size: 9px; padding: 2px 6px; border-color: var(--color-emerald); color: var(--color-emerald);">
+                ISO 10816 OPTIMAL
+              </span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 3px;">
+              ${totalAssets} Core Machinery Assets Monitored
+            </div>
+          </div>
+
+          <!-- Total Connected Electric Load -->
+          <div class="control-card" style="padding: 12px 14px; background: linear-gradient(135deg, #0c1524 0%, #080c14 100%);">
+            <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary);" class="tooltip-trigger-label" data-tooltip="Real-time 3-phase 415V electrical power demand across active machinery drives." data-tooltip-title="Connected Motor Power" data-tooltip-cat="ELECTRICAL">
+              Connected Motor Power
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+              <span id="fleet-power-val" style="font-size: 26px; font-weight: 900; color: var(--color-cyan); font-family: var(--font-mono);">
+                ${totalActivePowerKw.toFixed(1)} kW
+              </span>
+              <span style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">415V 3-Phase</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 3px;">
+              Active Plant Mechanical Drive Consumption
+            </div>
+          </div>
+
+          <!-- Operational Fleet Distribution -->
+          <div class="control-card" style="padding: 12px 14px; background: linear-gradient(135deg, #0c1524 0%, #080c14 100%);">
+            <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary);" class="tooltip-trigger-label" data-tooltip="Real-time operating distribution of the plant machinery fleet (Running, Standby, Tripped)." data-tooltip-title="Fleet ISA-88 State" data-tooltip-cat="OPERATIONS">
+              ISA-88 Operating Fleet
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+              <span id="fleet-status-val" style="font-size: 26px; font-weight: 900; color: #ffffff; font-family: var(--font-mono);">
+                ${runningCount} <span style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">/ ${totalAssets} Active</span>
+              </span>
+            </div>
+            <div style="font-size: 10px; color: var(--color-emerald); margin-top: 3px;">
+              ${runningCount} Running · ${standbyCount} Standby · ${trippedCount} Tripped
+            </div>
+          </div>
+
+          <!-- Predictive Maintenance Alerts -->
+          <div class="control-card" style="padding: 12px 14px; background: linear-gradient(135deg, #0c1524 0%, #080c14 100%);">
+            <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary);" class="tooltip-trigger-label" data-tooltip="Predictive maintenance warning count: assets with remaining useful life under 3,500 hours or vibration exceeding ISO limits." data-tooltip-title="Asset Integrity & RUL" data-tooltip-cat="PREDICTIVE">
+              Asset Integrity & RUL
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px;">
+              <span style="font-size: 26px; font-weight: 900; color: ${vibAlertCount > 0 ? 'var(--color-rose)' : (attentionCount > 0 ? 'var(--color-amber)' : 'var(--color-emerald)')}; font-family: var(--font-mono);">
+                ${attentionCount} Attention
+              </span>
+              <span style="font-size: 10px; color: var(--text-secondary);">RUL &lt; 3,500h</span>
+            </div>
+            <div style="font-size: 10px; color: var(--text-secondary); margin-top: 3px;">
+              ${vibAlertCount > 0 ? '⚠️ High Vibration Detected' : '✓ Zero ISO 10816 Zone C/D Violations'}
+            </div>
+          </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
-          ${Object.values(this.engine.equipment).map(eq => `
-            <div style="background: var(--bg-surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3);">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-2);">
-                <div>
-                  <span style="font-size: 14px; font-weight: 800; color: var(--color-cyan); font-family: var(--font-mono);">${eq.tag}</span>
-                  <span style="font-size: 13px; font-weight: 600; color: #ffffff; margin-left: 8px;">${eq.name}</span>
-                </div>
-                <span class="status-pill" style="font-size: 9px; padding: 2px 6px;">${eq.edt.status || 'ONLINE'}</span>
+        <!-- COMMAND & FILTER TOOLBAR -->
+        <div class="control-card" style="padding: 12px 16px; background: #080d17;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <!-- Left: Title & Explainer with Popover Badge -->
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="control-card-title" style="font-size: 14px; margin: 0;">IIC Dual-Twin Asset Registry & Predictive APM</span>
+                <span class="status-pill" style="font-size: 9.5px; padding: 2px 7px; border-color: var(--color-cyan); color: var(--color-cyan);">
+                  Lin et al. / DEXPI ISO 15926
+                </span>
+                <span class="tooltip-info-badge"
+                      data-tooltip="Architecture conforming to IIC Lin et al. (2021) and ISO 15926 / DEXPI. Decouples physical machinery degradation (EDT) from in-situ chemical kinetics and product CQAs (PiP)."
+                      data-tooltip-title="IIC Dual-Twin Architecture"
+                      data-tooltip-cat="IIC STANDARDS">ⓘ</span>
               </div>
+              <p style="font-size: 11px; color: var(--text-secondary); margin: 2px 0 0 0;">
+                Real-time decoupling: Machinery telemetry (EDT) vs in-situ chemical transformations & GWCL specs (PiP).
+              </p>
+            </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); font-size: 11px;">
-                <!-- EDT Side -->
-                <div style="background: #020617; padding: var(--space-3); border-radius: var(--radius-sm); border-left: 2px solid #38bdf8;">
-                  <div style="font-weight: 700; color: #38bdf8; margin-bottom: 4px;">Equipment Twin (EDT)</div>
-                  ${Object.entries(eq.edt).map(([k, v]) => `
-                    <div style="display: flex; justify-content: space-between; padding-block: 2px;">
-                      <span style="color: var(--text-secondary);">${k}:</span>
-                      <span style="font-family: var(--font-mono); font-weight: 600; color: #ffffff;">${v}</span>
-                    </div>
+            <!-- Right: Quick Fleet Actions -->
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button id="btn-overhaul-fleet" class="btn-control" style="font-size: 11px; padding: 4px 10px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);" data-tooltip="Overhaul all 18 plant machinery assets: resets component wear to 0%, restores full rated RUL, and logs an ISA-18.2 maintenance audit record." data-tooltip-title="Fleet Overhaul" data-tooltip-cat="APM">
+                🛠️ Fleet Overhaul (Reset Wear)
+              </button>
+              <button id="btn-export-dualtwin-csv" class="btn-control" style="font-size: 11px; padding: 4px 10px; background: #1e293b; color: #ffffff; border: 1px solid var(--border-medium);" data-tooltip="Export complete 18-asset dual-twin registry with all ISO 15926 classes, operating status, wear, RUL, PiP kinetics, CQAs, and DEXPI stream links." data-tooltip-title="CSV Export" data-tooltip-cat="DEXPI">
+                📥 Export Registry (CSV)
+              </button>
+            </div>
+          </div>
+
+          <!-- Secondary Filter Bar: Process Area Pills & Live Search -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+            <!-- Area Pills -->
+            <div style="display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;">
+              ${areas.map(a => `
+                <button class="capacity-preset-btn ${this.twinActiveArea === a.id ? 'active' : ''}" data-twin-area="${a.id}" style="white-space: nowrap;">
+                  ${a.label}
+                </button>
+              `).join('')}
+            </div>
+
+            <!-- Search & Status Filter -->
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <!-- Status Filter Select -->
+              <select id="twin-status-select" class="ekf-bench-input" style="font-size: 11px; padding: 4px 8px; height: 28px; width: 140px;">
+                <option value="all" ${this.twinStatusFilter === 'all' ? 'selected' : ''}>All Status</option>
+                <option value="RUNNING" ${this.twinStatusFilter === 'RUNNING' ? 'selected' : ''}>Running Only</option>
+                <option value="ATTENTION" ${this.twinStatusFilter === 'ATTENTION' ? 'selected' : ''}>Attention (Health &lt; 92%)</option>
+                <option value="STANDBY" ${this.twinStatusFilter === 'STANDBY' ? 'selected' : ''}>Standby / Offline</option>
+              </select>
+
+              <!-- Live Text Search -->
+              <div style="position: relative;">
+                <input type="text" id="twin-search-input" placeholder="Search tag (e.g. RK-201, R-601)..." value="${this.twinSearchQuery}" class="ekf-bench-input" style="font-size: 11px; padding: 4px 8px; width: 190px; height: 28px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 18 DUAL-TWIN CARDS GRID -->
+        <div class="dual-twin-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(620px, 1fr)); gap: var(--space-4);">
+          ${filteredEq.length === 0 ? `
+            <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary); background: var(--bg-surface-2); border-radius: var(--radius-md); border: 1px dashed var(--border-subtle);">
+              No equipment assets found matching the selected area or search criteria.
+            </div>
+          ` : filteredEq.map(eq => this.renderSingleDualTwinCard(eq)).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  renderSingleDualTwinCard(eq) {
+    const isRunning = eq.edt?.status === "RUNNING";
+    const isTripped = eq.edt?.status === "TRIPPED";
+    const health = eq.edt?.healthIndex || 95.0;
+    const healthColor = health >= 90 ? 'var(--color-emerald)' : (health >= 80 ? 'var(--color-cyan)' : 'var(--color-amber)');
+    const vib = eq.edt?.vibrationRms || eq.edt?.vibrationMmS || 1.1;
+    const vibSeverity = eq.edt?.vibrationSeverity || "Zone A: Good (<2.3 mm/s)";
+    const vibZoneClass = vib < 2.3 ? 'zone-a' : (vib < 4.5 ? 'zone-b' : (vib < 7.1 ? 'zone-c' : 'zone-d'));
+
+    const powerPct = eq.edt?.ratedPowerKw > 0
+      ? Math.min(100, Math.round(((eq.edt?.activePowerKw || 0) / eq.edt.ratedPowerKw) * 100))
+      : 0;
+
+    const wearPct = Math.min(100, Math.max(0, eq.edt?.wearPercent || 0));
+    const rulHours = Math.round(eq.edt?.remainingUsefulLifeHours || eq.edt?.remainingLinerHours || 4000);
+
+    return `
+      <div class="dual-twin-card" id="dual-twin-card-${eq.tag}" data-card-area="${eq.area}">
+        <!-- CARD HEADER -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="stream-badge-rect" style="padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-cyan); font-family: var(--font-mono); font-weight: 800; font-size: 13px; color: var(--color-cyan);">
+                ${eq.tag}
+              </span>
+              <span style="font-size: 13.5px; font-weight: 800; color: #ffffff;">${eq.name}</span>
+            </div>
+            <div style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px;">
+              <span>${eq.areaName || `Area ${eq.area}`}</span>
+              <span>•</span>
+              <span style="color: var(--text-tertiary);">${eq.type}</span>
+            </div>
+          </div>
+
+          <!-- Header Badges & Actions -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <!-- Health Score Ring/Pill -->
+            <span class="status-pill tooltip-trigger-label" data-tooltip="Real-time ISO 10816 mechanical health index combining vibration severity, bearing temperature, and cumulative wear degradation." data-tooltip-title="${eq.tag} Health Index" data-tooltip-cat="APM" style="font-size: 9.5px; padding: 2px 7px; border-color: ${healthColor}; color: ${healthColor}; font-weight: 700;">
+              ${health.toFixed(1)}% HEALTH
+            </span>
+
+            <!-- ISA-88 State Pill -->
+            <span class="status-pill" style="font-size: 9.5px; padding: 2px 7px; ${isRunning ? 'border-color: var(--color-emerald); color: var(--color-emerald);' : (isTripped ? 'border-color: var(--color-rose); color: var(--color-rose);' : 'border-color: var(--text-tertiary); color: var(--text-tertiary);')}">
+              ${isRunning ? '<span class="status-dot" style="background:#34d399;"></span> RUNNING' : (isTripped ? '<span class="status-dot" style="background:#fb7185;"></span> TRIPPED' : '<span class="status-dot" style="background:#94a3b8;"></span> STOPPED')}
+            </span>
+
+            <!-- Start / Stop Button -->
+            <button class="btn-control" data-twin-toggle-tag="${eq.tag}" data-current-state="${eq.edt?.status || 'RUNNING'}" style="font-size: 10px; height: 24px; padding: 2px 8px; ${isRunning ? 'background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3);' : 'background: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3);'}">
+              ${isRunning ? 'Stop' : 'Start'}
+            </button>
+          </div>
+        </div>
+
+        <!-- DUAL-TWIN DECOUPLED BODY -->
+        <div class="dual-twin-card-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); font-size: 11px;">
+          <!-- LEFT: EQUIPMENT DIGITAL TWIN (EDT) -->
+          <div style="background: #040813; border: 1px solid rgba(56, 189, 248, 0.2); border-left: 3px solid #38bdf8; border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+            <!-- EDT Section Title -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 800; color: #38bdf8; font-size: 11px; display: flex; align-items: center; gap: 5px;">
+                <span>⚙️</span> Equipment Twin (EDT)
+              </span>
+              <span class="tooltip-pill-compact" style="font-size: 9px; padding: 1px 5px;" data-tooltip="Equipment Digital Twin (EDT) tracks physical machine health: motor electrical load, bearing temperature, vibration spectrum, component wear, and remaining useful life." data-tooltip-title="EDT Specification" data-tooltip-cat="IIC EDT">Mechanical Asset</span>
+            </div>
+
+            <!-- Electrical Load -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="tooltip-trigger-label" data-tooltip="Real-time 3-phase motor draw computed from mechanical shaft load and motor efficiency curve (P = √3 × V × I × PF × η)." data-tooltip-title="Motor Power Draw" data-tooltip-cat="ELECTRICAL" style="color: var(--text-secondary);">Motor Power Draw:</span>
+                <span style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">
+                  <span id="edt-power-${eq.tag}">${(eq.edt?.activePowerKw || 0).toFixed(2)}</span> kW <span style="font-size: 9.5px; color: var(--text-tertiary);">/ ${eq.edt?.ratedPowerKw || 0} kW</span>
+                </span>
+              </div>
+              <div style="height: 4px; background: #131c2e; border-radius: 2px; margin-top: 3px; overflow: hidden;">
+                <div id="edt-pbar-${eq.tag}" style="height: 100%; width: ${powerPct}%; background: #38bdf8; transition: width 0.2s ease;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-tertiary); margin-top: 2px;">
+                <span>Current: <strong id="edt-current-${eq.tag}" style="color:#ffffff; font-family:var(--font-mono);">${(eq.edt?.motorCurrentA || 0).toFixed(1)} A</strong></span>
+                <span>PF: ${eq.edt?.powerFactor || 0.84}</span>
+                <span>VFD: ${eq.edt?.vfdFrequencyHz || 50} Hz</span>
+              </div>
+            </div>
+
+            <!-- Vibration Severity (ISO 10816-3) -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="tooltip-trigger-label" data-tooltip="ISO 10816-3 mechanical vibration velocity RMS measured in mm/s at drive-end bearing housing." data-tooltip-title="ISO 10816-3 Severity" data-tooltip-cat="MECHANICAL" style="color: var(--text-secondary);">Vibration Severity:</span>
+                <span id="edt-vib-${eq.tag}" style="font-family: var(--font-mono); font-weight: 800; color: ${vib >= 4.5 ? 'var(--color-amber)' : 'var(--color-cyan)'};">
+                  ${vib.toFixed(2)} mm/s RMS
+                </span>
+              </div>
+              <div style="margin-top: 3px;">
+                <span id="edt-vibzone-${eq.tag}" class="iso10816-pill ${vibZoneClass}" data-tooltip="ISO 10816-3 evaluation: ${this.escapeAttr(vibSeverity)}. Zone A: newly commissioned; Zone B: unrestricted operation; Zone C: scheduled service needed; Zone D: immediate shutdown." data-tooltip-title="ISO 10816 Classification" data-tooltip-cat="STANDARDS">
+                  ${vibSeverity}
+                </span>
+              </div>
+            </div>
+
+            <!-- Thermal & Bearing Status -->
+            <div style="display: flex; justify-content: space-between; padding-block: 2px; border-top: 1px solid #0c1524; padding-top: 4px;">
+              <span class="tooltip-trigger-label" data-tooltip="Pt100 RTD sensor embedded in the drive-end bearing housing. Maximum continuous operating limit: 75°C; High alarm: 85°C; Trip: 95°C." data-tooltip-title="Drive Bearing Temp" data-tooltip-cat="THERMAL" style="color: var(--text-secondary);">Drive Bearing Temp:</span>
+              <span id="edt-bearing-${eq.tag}" style="font-family: var(--font-mono); font-weight: 700; color: ${eq.edt?.bearingTempC > 65 ? 'var(--color-amber)' : '#ffffff'};">
+                ${eq.edt?.bearingTempC ? eq.edt.bearingTempC.toFixed(1) + ' °C' : 'N/A'}
+              </span>
+            </div>
+
+            <!-- Wear Degradation & RUL -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="tooltip-trigger-label" data-tooltip="Cumulative mechanical wear percentage of critical contact components (${this.escapeAttr(eq.edt?.wearMetricName || 'wear parts')}) modelled from operating hours, solids abrasiveness index, and load factor." data-tooltip-title="${this.escapeAttr(eq.edt?.wearMetricName || 'Component Wear')}" data-tooltip-cat="PREDICTIVE" style="color: var(--text-secondary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 170px;" title="${this.escapeAttr(eq.edt?.wearMetricName || 'Liner Wear')}">
+                  ${eq.edt?.wearMetricName || 'Component Wear'}:
+                </span>
+                <span id="edt-wear-${eq.tag}" style="font-family: var(--font-mono); font-weight: 700; color: ${wearPct > 35 ? 'var(--color-amber)' : '#ffffff'};">
+                  ${wearPct.toFixed(1)}%
+                </span>
+              </div>
+              <div style="height: 4px; background: #131c2e; border-radius: 2px; margin-top: 3px; overflow: hidden;">
+                <div id="edt-wbar-${eq.tag}" style="height: 100%; width: ${wearPct}%; background: ${wearPct > 35 ? 'var(--color-amber)' : '#38bdf8'}; transition: width 0.2s ease;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 3px;">
+                <span class="tooltip-trigger-label" data-tooltip="Weibull reliability degradation forecast estimating operational hours remaining before component wear reaches condemning threshold (100%)." data-tooltip-title="Remaining Useful Life (RUL)" data-tooltip-cat="PREDICTIVE" style="color: var(--text-tertiary);">Remaining Useful Life:</span>
+                <span id="edt-rul-${eq.tag}" style="font-family: var(--font-mono); font-weight: 800; color: var(--color-emerald);">
+                  ${rulHours.toLocaleString()} hrs
+                </span>
+              </div>
+            </div>
+
+            <!-- Overhaul Button -->
+            <button class="btn-control" data-overhaul-tag="${eq.tag}" style="font-size: 10px; height: 24px; padding: 2px 8px; margin-top: 2px; background: rgba(56, 189, 248, 0.08); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25);" data-tooltip="Reset component wear to 0%, restore full operational RUL (${(eq.edt?.ratedRulHours || 8000).toLocaleString()} hrs), and record maintenance turnaround event." data-tooltip-title="Overhaul ${eq.tag}" data-tooltip-cat="APM">
+              🛠️ Overhaul / Reset Wear
+            </button>
+          </div>
+
+          <!-- RIGHT: PRODUCT-IN-PROCESS (PiP) TWIN -->
+          <div style="background: #030f0a; border: 1px solid rgba(52, 211, 153, 0.2); border-left: 3px solid var(--color-emerald); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+            <!-- PiP Section Title -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 800; color: var(--color-emerald); font-size: 11px; display: flex; align-items: center; gap: 5px;">
+                <span>🧪</span> Product Twin (PiP)
+              </span>
+              <span class="tooltip-pill-compact" style="font-size: 9px; padding: 1px 5px;" data-tooltip="Product-in-Process (PiP) twin tracks chemical reactions, phase transitions, multi-stage kinetics, and product Critical Quality Attributes (CQAs)." data-tooltip-title="PiP Specification" data-tooltip-cat="IIC PiP">Kinetics & Quality</span>
+            </div>
+
+            <!-- Throughput & Thermodynamics -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="tooltip-trigger-label" data-tooltip="Instantaneous mass throughput of chemical slurry or solid feed passing through asset control volume, synchronized with Aspen Plus mass balance." data-tooltip-title="Mass Flow Throughput" data-tooltip-cat="PROCESS" style="color: var(--text-secondary);">Mass Flow Throughput:</span>
+                <span id="pip-mass-${eq.tag}" style="font-family: var(--font-mono); font-weight: 800; color: var(--color-emerald); font-size: 12px;">
+                  ${(eq.pip?.massThroughputKgH || 0).toFixed(1)} kg/h
+                </span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-tertiary); margin-top: 3px;">
+                <span>Temp: <strong id="pip-temp-${eq.tag}" style="color:#ffffff; font-family:var(--font-mono);">${eq.pip?.processTempC ? eq.pip.processTempC.toFixed(1) + ' °C' : '32.0 °C'}</strong></span>
+                <span>Pressure: <strong id="pip-press-${eq.tag}" style="color:#ffffff; font-family:var(--font-mono);">${eq.pip?.processPressureBara ? eq.pip.processPressureBara.toFixed(2) + ' bara' : '1.01 bara'}</strong></span>
+                <span class="tooltip-trigger-label" data-tooltip="Mean hydrodynamic slurry residence time (τ = V_active / Q_volumetric) determining kinetics completion and particle contact duration." data-tooltip-title="Residence Time (τ)" data-tooltip-cat="KINETICS">Tau: <strong style="color:var(--color-cyan); font-family:var(--font-mono);">${eq.pip?.residenceTimeMin ? (eq.pip.residenceTimeMin >= 60 ? (eq.pip.residenceTimeMin / 60).toFixed(1) + ' h' : eq.pip.residenceTimeMin.toFixed(0) + ' m') : 'N/A'}</strong></span>
+              </div>
+            </div>
+
+            <!-- Reaction Kinetics / Conversion Extent -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span class="tooltip-trigger-label" data-tooltip="Extent of target chemical or physical transformation achieved across asset boundary." data-tooltip-title="${this.escapeAttr(eq.pip?.conversionMetricName || 'Conversion Extent')}" data-tooltip-cat="KINETICS" style="color: var(--text-secondary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 170px;" title="${this.escapeAttr(eq.pip?.conversionMetricName || 'Conversion Extent')}">
+                  ${eq.pip?.conversionMetricName || 'Conversion Extent'}:
+                </span>
+                <span id="pip-conv-${eq.tag}" style="font-family: var(--font-mono); font-weight: 800; color: var(--color-emerald);">
+                  ${(eq.pip?.conversionExtentPercent || 0).toFixed(1)}%
+                </span>
+              </div>
+              <div style="height: 4px; background: #0c2017; border-radius: 2px; margin-top: 3px; overflow: hidden;">
+                <div id="pip-cbar-${eq.tag}" style="height: 100%; width: ${Math.min(100, eq.pip?.conversionExtentPercent || 0)}%; background: var(--color-emerald); transition: width 0.2s ease;"></div>
+              </div>
+              <!-- Compact Popover Trigger for Reaction & Transformation Details -->
+              <div style="margin-top: 4px;">
+                <span class="tooltip-pill-compact"
+                      data-tooltip="${this.escapeAttr(eq.pip?.physicalTransformation || 'Transformation kinetics actively simulated.')}"
+                      data-tooltip-title="${eq.tag} Transformation Chemistry"
+                      data-tooltip-cat="KINETICS">
+                  🧪 View Reaction & Transformation Chemistry
+                </span>
+              </div>
+            </div>
+
+            <!-- Critical Quality Attribute (CQA) -->
+            <div style="background: #020805; padding: 6px 8px; border-radius: var(--radius-xs); border: 1px solid rgba(52, 211, 153, 0.15);"
+                 data-tooltip="Ghana Water Company Limited (GWCL) Critical Quality Attribute (CQA) conformity verification. Target: ${this.escapeAttr(eq.pip?.cqaTarget || 'Pass')}. Evaluated against drinking water chemical coagulant specifications."
+                 data-tooltip-title="GWCL CQA Verification"
+                 data-tooltip-cat="QUALITY">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 9.5px; font-weight: 700; color: var(--color-emerald);">GWCL Standard CQA Pedigree</span>
+                <span class="status-pill" style="font-size: 8.5px; padding: 1px 4px; border-color: var(--color-emerald); color: var(--color-emerald);">
+                  ${eq.pip?.cqaCompliance || 'COMPLIANT'}
+                </span>
+              </div>
+              <div style="font-size: 10px; margin-top: 2px;">
+                <span style="color: var(--text-tertiary);">${eq.pip?.cqaName || 'Quality Spec'}:</span>
+                <strong style="color: #ffffff; font-family: var(--font-mono); margin-left: 4px;">${eq.pip?.cqaValue || 'Pass'}</strong>
+                <span style="color: var(--text-tertiary); font-size: 9px; margin-left: 4px;">(Target: ${eq.pip?.cqaTarget || 'Pass'})</span>
+              </div>
+            </div>
+
+            <!-- DEXPI Process Stream Links -->
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: 3px;">
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: var(--text-tertiary);">
+                <span style="min-width: 48px;">Inlets:</span>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                  ${(eq.inletStreams || []).map(s => `
+                    <span class="stream-chip-link" data-inspect-stream-id="${s}" data-tooltip="Click to inspect Aspen Plus process stream S-${s} mass balance, temperature, pressure, phase, and chemical composition." data-tooltip-title="Aspen Stream S-${s}" data-tooltip-cat="DEXPI">S-${s}</span>
                   `).join('')}
                 </div>
-
-                <!-- PiP Side -->
-                <div style="background: #020617; padding: var(--space-3); border-radius: var(--radius-sm); border-left: 2px solid var(--color-emerald);">
-                  <div style="font-weight: 700; color: var(--color-emerald); margin-bottom: 4px;">Product Twin (PiP)</div>
-                  ${Object.entries(eq.pip).map(([k, v]) => `
-                    <div style="display: flex; justify-content: space-between; padding-block: 2px;">
-                      <span style="color: var(--text-secondary);">${k}:</span>
-                      <span style="font-family: var(--font-mono); font-weight: 600; color: #ffffff;">${typeof v === 'number' ? v.toFixed(2) : v}</span>
-                    </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 9.5px; color: var(--text-tertiary);">
+                <span style="min-width: 48px;">Outlets:</span>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                  ${(eq.outletStreams || []).map(s => `
+                    <span class="stream-chip-link" data-inspect-stream-id="${s}" data-tooltip="Click to inspect Aspen Plus process stream S-${s} mass balance, temperature, pressure, phase, and chemical composition." data-tooltip-title="Aspen Stream S-${s}" data-tooltip-cat="DEXPI">S-${s}</span>
                   `).join('')}
                 </div>
               </div>
             </div>
-          `).join('')}
+          </div>
+        </div>
+
+        <!-- CARD FOOTER: DEXPI ISA-5.1 INSTRUMENTATION LOOPS -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #050811; padding: 6px 10px; border-radius: var(--radius-xs); font-size: 10.5px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="color: var(--text-tertiary); font-size: 9.5px; font-weight: 600;">Linked ISA-5.1 Loops:</span>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              ${(eq.associatedInstruments || []).map(inst => `
+                <span class="inst-chip-link" data-inspect-instrument-tag="${inst}" data-tooltip="Click to open ISA-5.1 SCADA faceplate, view PV/SP/OP trends, tuning constants (Kp, Ti, Td), and control alarms for loop ${inst}." data-tooltip-title="ISA-5.1 Loop ${inst}" data-tooltip-cat="SCADA">${inst}</span>
+              `).join('')}
+            </div>
+          </div>
+          <div class="tooltip-trigger-label" data-tooltip="ISO 15926 / DEXPI equipment functional classification schema defining semantic equipment metadata for digital plant inter-operability." data-tooltip-title="ISO 15926 Schema" data-tooltip-cat="STANDARDS" style="font-size: 9.5px; font-family: var(--font-mono); color: var(--text-tertiary);">
+            DEXPI Class: ${eq.iso15926Class || 'ISO15926'}
+          </div>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Real-time 60fps telemetry updater for the Dual-Twin Registry
+   * Updates numbers, power bars, vibration zones, and health indices without DOM destruction.
+   */
+  updateEquipmentTwinRealtime(equipment) {
+    if (this.activeSubTab !== "equipment-twin") return;
+
+    const allEq = Object.values(equipment);
+    const totalAssets = allEq.length;
+    const totalKw = allEq.reduce((acc, e) => acc + (e.edt?.activePowerKw || 0), 0);
+    const avgHealth = totalAssets > 0 ? allEq.reduce((acc, e) => acc + (e.edt?.healthIndex || 95), 0) / totalAssets : 95;
+    const runningCount = allEq.filter(e => e.edt?.status === "RUNNING").length;
+
+    const fleetHealthEl = this.container.querySelector("#fleet-health-val");
+    if (fleetHealthEl) {
+      fleetHealthEl.textContent = `${avgHealth.toFixed(1)}%`;
+      fleetHealthEl.style.color = avgHealth >= 90 ? 'var(--color-emerald)' : 'var(--color-amber)';
+    }
+    const fleetPowerEl = this.container.querySelector("#fleet-power-val");
+    if (fleetPowerEl) {
+      fleetPowerEl.textContent = `${totalKw.toFixed(1)} kW`;
+    }
+    const fleetStatusEl = this.container.querySelector("#fleet-status-val");
+    if (fleetStatusEl) {
+      fleetStatusEl.innerHTML = `${runningCount} <span style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">/ ${totalAssets} Active</span>`;
+    }
+
+    for (const [tag, eq] of Object.entries(equipment)) {
+      if (!eq || !eq.edt) continue;
+
+      const pEl = this.container.querySelector(`#edt-power-${tag}`);
+      if (pEl) pEl.textContent = (eq.edt.activePowerKw || 0).toFixed(2);
+      const pbEl = this.container.querySelector(`#edt-pbar-${tag}`);
+      if (pbEl && eq.edt.ratedPowerKw > 0) {
+        const pct = Math.min(100, Math.round(((eq.edt.activePowerKw || 0) / eq.edt.ratedPowerKw) * 100));
+        pbEl.style.width = `${pct}%`;
+      }
+      const curEl = this.container.querySelector(`#edt-current-${tag}`);
+      if (curEl) curEl.textContent = `${(eq.edt.motorCurrentA || 0).toFixed(1)} A`;
+
+      const vibEl = this.container.querySelector(`#edt-vib-${tag}`);
+      if (vibEl) {
+        const v = eq.edt.vibrationRms || eq.edt.vibrationMmS || 1.1;
+        vibEl.textContent = `${v.toFixed(2)} mm/s RMS`;
+        vibEl.style.color = v >= 4.5 ? 'var(--color-amber)' : 'var(--color-cyan)';
+      }
+      const vibZoneEl = this.container.querySelector(`#edt-vibzone-${tag}`);
+      if (vibZoneEl && eq.edt.vibrationSeverity) {
+        vibZoneEl.textContent = eq.edt.vibrationSeverity;
+        const v = eq.edt.vibrationRms || eq.edt.vibrationMmS || 1.1;
+        vibZoneEl.className = `iso10816-pill ${v < 2.3 ? 'zone-a' : (v < 4.5 ? 'zone-b' : (v < 7.1 ? 'zone-c' : 'zone-d'))}`;
+      }
+
+      const bEl = this.container.querySelector(`#edt-bearing-${tag}`);
+      if (bEl && eq.edt.bearingTempC) {
+        bEl.textContent = `${eq.edt.bearingTempC.toFixed(1)} °C`;
+      }
+
+      const wEl = this.container.querySelector(`#edt-wear-${tag}`);
+      if (wEl && eq.edt.wearPercent !== undefined) {
+        wEl.textContent = `${eq.edt.wearPercent.toFixed(1)}%`;
+      }
+      const wbEl = this.container.querySelector(`#edt-wbar-${tag}`);
+      if (wbEl && eq.edt.wearPercent !== undefined) {
+        wbEl.style.width = `${Math.min(100, eq.edt.wearPercent)}%`;
+      }
+      const rulEl = this.container.querySelector(`#edt-rul-${tag}`);
+      if (rulEl && eq.edt.remainingUsefulLifeHours !== undefined) {
+        rulEl.textContent = `${Math.round(eq.edt.remainingUsefulLifeHours).toLocaleString()} hrs`;
+      }
+
+      const mEl = this.container.querySelector(`#pip-mass-${tag}`);
+      if (mEl && eq.pip?.massThroughputKgH !== undefined) {
+        mEl.textContent = `${eq.pip.massThroughputKgH.toFixed(1)} kg/h`;
+      }
+      const tEl = this.container.querySelector(`#pip-temp-${tag}`);
+      if (tEl && eq.pip?.processTempC !== undefined) {
+        tEl.textContent = `${eq.pip.processTempC.toFixed(1)} °C`;
+      }
+      const cEl = this.container.querySelector(`#pip-conv-${tag}`);
+      if (cEl && eq.pip?.conversionExtentPercent !== undefined) {
+        cEl.textContent = `${eq.pip.conversionExtentPercent.toFixed(1)}%`;
+      }
+      const cbEl = this.container.querySelector(`#pip-cbar-${tag}`);
+      if (cbEl && eq.pip?.conversionExtentPercent !== undefined) {
+        cbEl.style.width = `${Math.min(100, eq.pip.conversionExtentPercent)}%`;
+      }
+    }
+  }
+
+  /**
+   * Generates and downloads a comprehensive CSV manifest of the IIC Dual-Twin Registry.
+   */
+  exportDualTwinRegistryCsv() {
+    const headers = [
+      "Asset_Tag",
+      "Asset_Name",
+      "Process_Area",
+      "Area_Name",
+      "ISO_15926_Classification",
+      "ISA88_Operating_Status",
+      "Mechanical_Health_Index_Pct",
+      "Active_Power_kW",
+      "Rated_Power_kW",
+      "Motor_Current_A",
+      "Vibration_RMS_mm_s",
+      "ISO_10816_Vibration_Zone",
+      "Drive_Bearing_Temp_C",
+      "Wear_Metric_Name",
+      "Component_Wear_Pct",
+      "Remaining_Useful_Life_RUL_Hours",
+      "Lubrication_Health_Pct",
+      "PiP_Mass_Throughput_kg_h",
+      "PiP_Process_Temp_C",
+      "PiP_Process_Pressure_bara",
+      "PiP_Residence_Time_min",
+      "PiP_Conversion_Metric",
+      "PiP_Conversion_Extent_Pct",
+      "CQA_Name",
+      "CQA_Target_Spec",
+      "CQA_Current_Value",
+      "CQA_GWCL_Compliance",
+      "Inlet_Streams",
+      "Outlet_Streams",
+      "Associated_ISA51_Instruments"
+    ];
+
+    const rows = Object.values(this.engine.equipment).map(eq => [
+      eq.tag,
+      `"${eq.name}"`,
+      eq.area,
+      `"${eq.areaName || ''}"`,
+      `"${eq.iso15926Class || ''}"`,
+      eq.edt?.status || "RUNNING",
+      eq.edt?.healthIndex || 95.0,
+      eq.edt?.activePowerKw || 0.0,
+      eq.edt?.ratedPowerKw || 0.0,
+      eq.edt?.motorCurrentA || 0.0,
+      eq.edt?.vibrationRms || 0.0,
+      `"${eq.edt?.vibrationSeverity || ''}"`,
+      eq.edt?.bearingTempC || "",
+      `"${eq.edt?.wearMetricName || ''}"`,
+      eq.edt?.wearPercent || 0.0,
+      Math.round(eq.edt?.remainingUsefulLifeHours || eq.edt?.remainingLinerHours || 0),
+      eq.edt?.lubricationHealthPercent || 100.0,
+      eq.pip?.massThroughputKgH || 0.0,
+      eq.pip?.processTempC || "",
+      eq.pip?.processPressureBara || "",
+      eq.pip?.residenceTimeMin || "",
+      `"${eq.pip?.conversionMetricName || ''}"`,
+      eq.pip?.conversionExtentPercent || 0.0,
+      `"${eq.pip?.cqaName || ''}"`,
+      `"${eq.pip?.cqaTarget || ''}"`,
+      `"${eq.pip?.cqaValue || ''}"`,
+      eq.pip?.cqaCompliance || "COMPLIANT",
+      `"${(eq.inletStreams || []).join(';')}"`,
+      `"${(eq.outletStreams || []).join(';')}"`,
+      `"${(eq.associatedInstruments || []).join(';')}"`
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    this.downloadCsv("PAC_Plant_IIC_DualTwin_EDT_PiP_Registry.csv", csvContent);
   }
 
   attachHandlers() {
@@ -2798,10 +3368,105 @@ export class AnalyticsView {
         }
       });
     }
+
+    // IIC Dual-Twin Area Filters
+    this.container.querySelectorAll("[data-twin-area]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.twinActiveArea = btn.getAttribute("data-twin-area");
+        this.render();
+      });
+    });
+
+    // IIC Dual-Twin Status Filter
+    const twinStatusSelect = this.container.querySelector("#twin-status-select");
+    if (twinStatusSelect) {
+      twinStatusSelect.addEventListener("change", (e) => {
+        this.twinStatusFilter = e.target.value;
+        this.render();
+      });
+    }
+
+    // IIC Dual-Twin Search
+    const twinSearchInput = this.container.querySelector("#twin-search-input");
+    if (twinSearchInput) {
+      twinSearchInput.addEventListener("input", (e) => {
+        this.twinSearchQuery = e.target.value;
+        const q = this.twinSearchQuery.toLowerCase().trim();
+        this.container.querySelectorAll(".dual-twin-card").forEach(card => {
+          const text = card.textContent.toLowerCase();
+          card.style.display = text.includes(q) ? "" : "none";
+        });
+      });
+    }
+
+    // Overhaul Single Asset
+    this.container.querySelectorAll("[data-overhaul-tag]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tag = btn.getAttribute("data-overhaul-tag");
+        this.engine.overhaulEquipment(tag);
+        this.render();
+      });
+    });
+
+    // Overhaul Fleet
+    const btnOverhaulFleet = this.container.querySelector("#btn-overhaul-fleet");
+    if (btnOverhaulFleet) {
+      btnOverhaulFleet.addEventListener("click", () => {
+        for (const tag of Object.keys(this.engine.equipment)) {
+          this.engine.overhaulEquipment(tag);
+        }
+        this.render();
+      });
+    }
+
+    // Start / Stop Toggle
+    this.container.querySelectorAll("[data-twin-toggle-tag]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tag = btn.getAttribute("data-twin-toggle-tag");
+        const curr = btn.getAttribute("data-current-state");
+        const nextState = (curr === "RUNNING") ? "STOPPED" : "RUNNING";
+        this.engine.setEquipmentOperatingState(tag, nextState);
+        this.render();
+      });
+    });
+
+    // Inspect Stream Chip Link
+    this.container.querySelectorAll("[data-inspect-stream-id]").forEach(chip => {
+      chip.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const sId = chip.getAttribute("data-inspect-stream-id");
+        if (window.app?.inspectorDrawer) {
+          window.app.inspectorDrawer.inspectStream(sId);
+        }
+      });
+    });
+
+    // Inspect Instrument Chip Link
+    this.container.querySelectorAll("[data-inspect-instrument-tag]").forEach(chip => {
+      chip.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const tag = chip.getAttribute("data-inspect-instrument-tag");
+        if (window.app?.faceplateModal) {
+          window.app.faceplateModal.openFaceplate(tag);
+        }
+      });
+    });
+
+    // Export Dual-Twin CSV
+    const btnExportTwin = this.container.querySelector("#btn-export-dualtwin-csv");
+    if (btnExportTwin) {
+      btnExportTwin.addEventListener("click", () => {
+        this.exportDualTwinRegistryCsv();
+      });
+    }
   }
 
   update() {
     // Real-time updates for telemetry values on active cards
+    if (this.activeSubTab === "equipment-twin") {
+      this.updateEquipmentTwinRealtime(this.engine.equipment);
+    }
+
     if (this.activeSubTab === "soft-sensors") {
       const allSensors = this.softSensors.getAllSensors();
       let optimalCount = 0;
