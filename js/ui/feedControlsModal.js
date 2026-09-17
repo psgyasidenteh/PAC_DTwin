@@ -1,7 +1,7 @@
 /**
  * PLANT FEED BOUNDARIES & DESIGN SPEC INVERSION CONTROLS
- * Slide-out panel allowing dynamic modification of plant boundary inputs,
- * ore assays, and continuous mathematical Design Spec solving.
+ * Staged draft buffer with explicit "▶ Run Simulation & Update Plant"
+ * and "🔄 Reset & Restart Plant" execution triggers.
  */
 
 export class FeedControlsModal {
@@ -9,6 +9,8 @@ export class FeedControlsModal {
     this.engine = engine;
     this.container = null;
     this.isOpen = false;
+    this.draftInputs = JSON.parse(JSON.stringify(this.engine.plantInputs));
+    this.isDirty = false;
 
     this.createDom();
   }
@@ -23,6 +25,9 @@ export class FeedControlsModal {
 
   open() {
     this.isOpen = true;
+    this.draftInputs = JSON.parse(JSON.stringify(this.engine.plantInputs));
+    this.isDirty = false;
+    this.render();
     this.container.classList.add("open");
   }
 
@@ -37,7 +42,7 @@ export class FeedControlsModal {
   }
 
   render() {
-    const inputs = this.engine.plantInputs;
+    const inputs = this.draftInputs;
 
     this.container.innerHTML = `
       <div class="drawer-header">
@@ -49,14 +54,38 @@ export class FeedControlsModal {
       </div>
 
       <div class="drawer-content">
-        <!-- 1. ACTIVE DESIGN SPEC SOLVERS -->
-        <div class="control-card" style="border: 1px solid var(--border-cyan); background: rgba(6, 182, 212, 0.05);">
+        <!-- RUN SIMULATION PRIMARY ACTION BANNER -->
+        <div style="padding: 12px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid var(--color-emerald); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span class="control-card-title" style="color: var(--color-cyan);">Active Design Spec Solvers</span>
-            <span class="status-pill" style="font-size: 9px; padding: 2px 6px;">AUTO-SOLVER ON</span>
+            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-emerald);">
+              Execution Workflow
+            </span>
+            <span id="feed-status-badge" class="status-pill" style="font-size: 9px; padding: 2px 6px; ${this.isDirty ? 'border-color: #f59e0b; color: #f59e0b;' : 'border-color: var(--color-emerald); color: var(--color-emerald);'}">
+              ${this.isDirty ? 'STAGED CHANGES PENDING' : 'SYNCHRONIZED WITH PLANT'}
+            </span>
+          </div>
+          <div style="display: flex; gap: var(--space-2);">
+            <button id="btn-run-simulation" class="btn-control btn-primary" style="flex: 2; height: 38px; font-weight: 800; font-size: 12px; background: linear-gradient(135deg, #10b981, #06b6d4); border: none; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3); justify-content: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              ▶ Run Simulation & Update Plant
+            </button>
+            <button id="btn-restart-plant" class="btn-control" style="flex: 1; height: 38px; font-size: 11px; justify-content: center; background: var(--bg-surface-2); border: 1px solid var(--border-subtle);" title="Restart continuous simulation from time t=0">
+              🔄 Restart Plant
+            </button>
+          </div>
+          <div id="feed-toast" style="display: none; font-size: 11px; color: var(--text-emerald); font-weight: 700; text-align: center; padding-top: 2px;">
+            ✓ Plant mass balance & streams updated!
+          </div>
+        </div>
+
+        <!-- 1. ACTIVE DESIGN SPEC SOLVERS -->
+        <div class="control-card" style="margin-top: var(--space-2);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="control-card-title" style="color: var(--color-cyan);">Target Quality & Design Specs</span>
+            <span class="status-pill" style="font-size: 9px; padding: 2px 6px;">AUTO-SOLVER</span>
           </div>
           <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-            Moving these sliders solves the non-linear algebraic equations in real-time, automatically trimming reagent feeds to achieve exact chemical specs.
+            Adjust target alumina recovery or product basicity, then click <strong>Run Simulation</strong> to re-evaluate stoichiometry.
           </p>
 
           <!-- Design Spec 1: Target Conversion -->
@@ -89,7 +118,7 @@ export class FeedControlsModal {
         </div>
 
         <!-- 2. RAW BAUXITE FEED BOUNDARY -->
-        <div class="control-card">
+        <div class="control-card" style="margin-top: var(--space-2);">
           <span class="control-card-title">Run-of-Mine Bauxite Feed Boundary</span>
 
           <!-- Feed Rate Slider -->
@@ -110,7 +139,7 @@ export class FeedControlsModal {
           <div class="slider-group">
             <div class="slider-label-row">
               <span>Gibbsite Grade [Al(OH)3]</span>
-              <span id="gibbsite-val" style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${inputs.gibbsiteGradePercent.toFixed(1)}%</span>
+              <span id="gibbsite-val" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-primary);">${inputs.gibbsiteGradePercent.toFixed(1)}%</span>
             </div>
             <input type="range" id="gibbsite-slider" class="slider-control" min="45" max="70" step="0.5" value="${inputs.gibbsiteGradePercent}" />
           </div>
@@ -119,7 +148,7 @@ export class FeedControlsModal {
           <div class="slider-group">
             <div class="slider-label-row">
               <span>Quartz / Silica Grade [SiO2]</span>
-              <span id="silica-val" style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${inputs.sio2GradePercent.toFixed(1)}%</span>
+              <span id="silica-val" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-primary);">${inputs.sio2GradePercent.toFixed(1)}%</span>
             </div>
             <input type="range" id="silica-slider" class="slider-control" min="20" max="45" step="0.5" value="${inputs.sio2GradePercent}" />
           </div>
@@ -128,14 +157,14 @@ export class FeedControlsModal {
           <div class="slider-group">
             <div class="slider-label-row">
               <span>Haematite Grade [Fe2O3]</span>
-              <span id="iron-val" style="font-family: var(--font-mono); font-weight: 700; color: #ffffff;">${inputs.fe2o3GradePercent.toFixed(2)}%</span>
+              <span id="iron-val" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-primary);">${inputs.fe2o3GradePercent.toFixed(2)}%</span>
             </div>
             <input type="range" id="iron-slider" class="slider-control" min="0.5" max="5.0" step="0.1" value="${inputs.fe2o3GradePercent}" />
           </div>
         </div>
 
         <!-- 3. AMBIENT & ENVIRONMENTAL CONDITIONS -->
-        <div class="control-card">
+        <div class="control-card" style="margin-top: var(--space-2);">
           <span class="control-card-title">Site Environmental Conditions (Awaso, Ghana)</span>
           <div class="slider-group">
             <div class="slider-label-row">
@@ -146,9 +175,9 @@ export class FeedControlsModal {
           </div>
         </div>
 
-        <!-- 4. ACTION BUTTONS -->
-        <div style="display: flex; gap: var(--space-2); margin-top: auto;">
-          <button id="btn-reset-feed-basis" class="btn-control" style="flex: 1; justify-content: center; height: 36px;">
+        <!-- 4. RESET ACTION BUTTON -->
+        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
+          <button id="btn-reset-feed-basis" class="btn-control" style="flex: 1; justify-content: center; height: 34px;">
             Reset to Design Basis
           </button>
         </div>
@@ -162,6 +191,20 @@ export class FeedControlsModal {
     const closeBtn = this.container.querySelector("#drawer-close-btn");
     if (closeBtn) closeBtn.addEventListener("click", () => this.close());
 
+    const markDirty = () => {
+      this.isDirty = true;
+      const badge = this.container.querySelector("#feed-status-badge");
+      if (badge) {
+        badge.textContent = "STAGED CHANGES PENDING";
+        badge.style.borderColor = "#f59e0b";
+        badge.style.color = "#f59e0b";
+      }
+      const runBtn = this.container.querySelector("#btn-run-simulation");
+      if (runBtn) {
+        runBtn.style.animation = "pulse 1.5s infinite";
+      }
+    };
+
     // Design Spec Conversion Slider
     const dspXSlider = this.container.querySelector("#dsp-x-slider");
     const dspXVal = this.container.querySelector("#dsp-x-val");
@@ -169,7 +212,8 @@ export class FeedControlsModal {
       dspXSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value) / 100;
         dspXVal.textContent = `${(val * 100).toFixed(1)}%`;
-        this.engine.updatePlantInputs({ designSpecTargetConversion: val });
+        this.draftInputs.designSpecTargetConversion = val;
+        markDirty();
       });
     }
 
@@ -180,7 +224,8 @@ export class FeedControlsModal {
       dspBSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         dspBVal.textContent = `${val.toFixed(1)}%`;
-        this.engine.updatePlantInputs({ designSpecTargetBasicity: val });
+        this.draftInputs.designSpecTargetBasicity = val;
+        markDirty();
       });
     }
 
@@ -191,7 +236,8 @@ export class FeedControlsModal {
       feedRateSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         feedRateVal.textContent = `${val.toFixed(1)} kg/h`;
-        this.engine.updatePlantInputs({ bauxiteFeedRateKgH: val });
+        this.draftInputs.bauxiteFeedRateKgH = val;
+        markDirty();
       });
     }
 
@@ -202,7 +248,8 @@ export class FeedControlsModal {
       gibbsiteSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         gibbsiteVal.textContent = `${val.toFixed(1)}%`;
-        this.engine.updatePlantInputs({ gibbsiteGradePercent: val });
+        this.draftInputs.gibbsiteGradePercent = val;
+        markDirty();
       });
     }
 
@@ -213,7 +260,8 @@ export class FeedControlsModal {
       silicaSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         silicaVal.textContent = `${val.toFixed(1)}%`;
-        this.engine.updatePlantInputs({ sio2GradePercent: val });
+        this.draftInputs.sio2GradePercent = val;
+        markDirty();
       });
     }
 
@@ -224,7 +272,8 @@ export class FeedControlsModal {
       ironSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         ironVal.textContent = `${val.toFixed(2)}%`;
-        this.engine.updatePlantInputs({ fe2o3GradePercent: val });
+        this.draftInputs.fe2o3GradePercent = val;
+        markDirty();
       });
     }
 
@@ -235,7 +284,48 @@ export class FeedControlsModal {
       ambientSlider.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         ambientVal.textContent = `${val.toFixed(1)} °C`;
-        this.engine.updatePlantInputs({ ambientTempC: val });
+        this.draftInputs.ambientTempC = val;
+        markDirty();
+      });
+    }
+
+    // "▶ Run Simulation & Update Plant" button
+    const runBtn = this.container.querySelector("#btn-run-simulation");
+    const toast = this.container.querySelector("#feed-toast");
+    if (runBtn) {
+      runBtn.addEventListener("click", () => {
+        this.engine.applyFeedBoundaryAndRun(this.draftInputs, { restart: false });
+        this.isDirty = false;
+        runBtn.style.animation = "none";
+        const badge = this.container.querySelector("#feed-status-badge");
+        if (badge) {
+          badge.textContent = "SYNCHRONIZED WITH PLANT";
+          badge.style.borderColor = "var(--color-emerald)";
+          badge.style.color = "var(--color-emerald)";
+        }
+        if (toast) {
+          toast.style.display = "block";
+          toast.textContent = `✓ Recalculated! Bauxite: ${this.draftInputs.bauxiteFeedRateKgH.toFixed(1)} kg/h`;
+          setTimeout(() => {
+            if (toast) toast.style.display = "none";
+          }, 3000);
+        }
+      });
+    }
+
+    // "🔄 Restart Plant" button
+    const restartBtn = this.container.querySelector("#btn-restart-plant");
+    if (restartBtn) {
+      restartBtn.addEventListener("click", () => {
+        this.engine.applyFeedBoundaryAndRun(this.draftInputs, { restart: true });
+        this.isDirty = false;
+        if (toast) {
+          toast.style.display = "block";
+          toast.textContent = `✓ Plant reset and running at ${this.draftInputs.bauxiteFeedRateKgH.toFixed(1)} kg/h`;
+          setTimeout(() => {
+            if (toast) toast.style.display = "none";
+          }, 3000);
+        }
       });
     }
 
@@ -243,15 +333,18 @@ export class FeedControlsModal {
     const resetBtn = this.container.querySelector("#btn-reset-feed-basis");
     if (resetBtn) {
       resetBtn.addEventListener("click", () => {
-        this.engine.updatePlantInputs({
+        this.draftInputs = {
           bauxiteFeedRateKgH: 755.99,
           gibbsiteGradePercent: 59.7,
           fe2o3GradePercent: 1.59,
           sio2GradePercent: 35.12,
           ambientTempC: 32.0,
           designSpecTargetConversion: 0.884,
-          designSpecTargetBasicity: 48.5
-        });
+          designSpecTargetBasicity: 48.5,
+          coolingWaterLossActive: false
+        };
+        this.engine.applyFeedBoundaryAndRun(this.draftInputs, { restart: false });
+        this.isDirty = false;
         this.render();
       });
     }

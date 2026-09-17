@@ -4,17 +4,17 @@
  * ISA-5.1 faceplates, and real-time technoeconomics.
  */
 
-import { SimulationEngine } from './engine/simulationEngine.js';
-import { HazopSimulator } from './engine/hazopSimulator.js';
-import { SoftSensorModule } from './engine/softSensors.js';
-import { EconomicsEngine } from './engine/economicsEngine.js';
+import { SimulationEngine } from './engine/simulationEngine.js?v=2.2.1';
+import { HazopSimulator } from './engine/hazopSimulator.js?v=2.2.1';
+import { SoftSensorModule } from './engine/softSensors.js?v=2.2.1';
+import { EconomicsEngine } from './engine/economicsEngine.js?v=2.2.1';
 
-import { PfdRenderer } from './ui/pfdRenderer.js';
-import { PidRenderer } from './ui/pidRenderer.js';
-import { FaceplateModal } from './ui/faceplateModal.js';
-import { FeedControlsModal } from './ui/feedControlsModal.js';
-import { InspectorDrawer } from './ui/inspectorDrawer.js';
-import { AnalyticsView } from './ui/analyticsView.js';
+import { PfdRenderer } from './ui/pfdRenderer.js?v=2.2.1';
+import { PidRenderer } from './ui/pidRenderer.js?v=2.2.1';
+import { FaceplateModal } from './ui/faceplateModal.js?v=2.2.1';
+import { FeedControlsModal } from './ui/feedControlsModal.js?v=2.2.1';
+import { InspectorDrawer } from './ui/inspectorDrawer.js?v=2.2.1';
+import { AnalyticsView } from './ui/analyticsView.js?v=2.2.1';
 
 class DigitalTwinApp {
   constructor() {
@@ -78,22 +78,6 @@ class DigitalTwinApp {
     const btnFeed = document.getElementById("btn-open-feed-controls");
     if (btnFeed) {
       btnFeed.addEventListener("click", () => this.feedControlsModal.toggle());
-    }
-
-    // 2b. Theme Toggle (Default Light Mode)
-    const btnTheme = document.getElementById("btn-theme-toggle");
-    if (btnTheme) {
-      btnTheme.addEventListener("click", () => {
-        const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
-        const newTheme = currentTheme === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", newTheme);
-        const iconEl = document.getElementById("theme-toggle-icon");
-        const textEl = document.getElementById("theme-toggle-text");
-        if (iconEl && textEl) {
-          iconEl.textContent = newTheme === "dark" ? "☀️" : "🌙";
-          textEl.textContent = newTheme === "dark" ? "Light Mode" : "Dark Mode";
-        }
-      });
     }
 
     // 3. Clock update
@@ -164,6 +148,16 @@ class DigitalTwinApp {
 
   updateTelemetry(simData) {
     const { streams, equipment, instruments, inputs } = simData;
+
+    // Step EKF State Observer Suite (4 Hz recursive filter propagation)
+    if (this.softSensors) {
+      this.softSensors.step(0.25);
+    }
+
+    // Step HAZOP Safety Instrumented System (SIS) Cause-and-Effect Engine
+    if (this.hazopSim) {
+      this.hazopSim.step(0.25);
+    }
 
     // 1. Update KPI Ribbon
     const bauxiteRateEl = document.getElementById("kpi-bauxite-rate");
@@ -281,5 +275,19 @@ class DigitalTwinApp {
 
 // Instantiate on DOM load
 window.addEventListener("DOMContentLoaded", () => {
-  window.app = new DigitalTwinApp();
+  try {
+    window.app = new DigitalTwinApp();
+    console.log("SCADA Digital Twin Initialized Successfully.");
+  } catch (err) {
+    console.error("FATAL SCADA RUNTIME ERROR:", err);
+    const container = document.getElementById("pfd-viewport-container");
+    if (container) {
+      container.innerHTML = `
+        <div style="padding: 30px; color: #ef4444; background: #111827; border: 2px solid #ef4444; margin: 20px; border-radius: 8px; font-family: monospace;">
+          <h2 style="margin: 0 0 12px 0;">⚠️ DIGITAL TWIN RUNTIME INITIALIZATION ERROR</h2>
+          <div style="font-weight: bold; margin-bottom: 8px;">${err.name}: ${err.message}</div>
+          <pre style="white-space: pre-wrap; font-size: 11px; background: #000; padding: 12px; border-radius: 4px; overflow-x: auto;">${err.stack || err}</pre>
+        </div>`;
+    }
+  }
 });

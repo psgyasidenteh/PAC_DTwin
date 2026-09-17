@@ -1,7 +1,8 @@
 /**
  * DRAGGABLE ISA-5.1 PID CONTROLLER FACEPLATE
  * Provides realistic DCS / SCADA loop control with Auto/Man/Cas modes,
- * SP adjustments, OP slider in Manual mode, and tuning parameters.
+ * SP adjustments, manual OP slider, live PID sub-terms (P, I, D),
+ * Anti-Windup saturation alerts, and interactive PID tuning.
  */
 
 export class FaceplateModal {
@@ -64,6 +65,8 @@ export class FaceplateModal {
     const inst = this.engine.instruments[this.currentTag];
     if (!inst) return;
 
+    const ctrl = this.engine.controllers ? this.engine.controllers[this.currentTag] : null;
+
     const pvPercent = Math.min(Math.max(((inst.pv - inst.limits.low) / (inst.limits.high - inst.limits.low)) * 100, 0), 100);
     const spPercent = Math.min(Math.max(((inst.sp - inst.limits.low) / (inst.limits.high - inst.limits.low)) * 100, 0), 100);
     const opPercent = Math.min(Math.max(inst.op, 0), 100);
@@ -72,12 +75,19 @@ export class FaceplateModal {
       ? `<span class="alarm-flash-badge alarm-priority-trip">TRIP</span>`
       : inst.alarm === "HIGH"
       ? `<span class="alarm-flash-badge alarm-priority-warn">HIGH</span>`
+      : inst.alarm === "LOW"
+      ? `<span class="alarm-flash-badge alarm-priority-warn" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">LOW</span>`
       : `<span style="color: var(--text-emerald); font-weight: 700; font-size: 10px;">NORMAL</span>`;
+
+    const isSaturated = ctrl ? ctrl.isSaturatedHigh || ctrl.isSaturatedLow : false;
 
     this.container.innerHTML = `
       <div class="faceplate-header">
         <div>
-          <div class="faceplate-tag">${inst.tag}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="faceplate-tag">${inst.tag}</div>
+            ${isSaturated ? `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 800;">WINDUP CLAMP</span>` : ''}
+          </div>
           <div class="faceplate-desc">${inst.name}</div>
         </div>
         <div style="display: flex; align-items: center; gap: var(--space-2);">
@@ -139,7 +149,7 @@ export class FaceplateModal {
           </div>
         </div>
 
-        <!-- MANUAL OUTPUT SLIDER (Enabled if MAN mode) -->
+        <!-- MANUAL OUTPUT SLIDER -->
         <div class="control-card" style="opacity: ${inst.mode === 'MAN' ? '1.0' : '0.5'};">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="control-card-title">Manual Output (OP)</span>
@@ -148,22 +158,34 @@ export class FaceplateModal {
           <input type="range" id="fp-op-slider" class="slider-control" min="0" max="100" value="${inst.op}" ${inst.mode === 'MAN' ? '' : 'disabled'} />
         </div>
 
+        <!-- CONTROLLER ACTUATOR SPECS -->
+        ${ctrl ? `
+          <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-tertiary); font-family: var(--font-mono); padding: 2px 4px;">
+            <span>Trim: <strong style="color: var(--color-cyan);">${ctrl.valveTrim}</strong></span>
+            <span>Action: <strong style="color: #ffffff;">${ctrl.action}</strong></span>
+            <span>Slew: <strong style="color: #ffffff;">${ctrl.slewRate}%/s</strong></span>
+          </div>
+        ` : ''}
+
         <!-- PID TUNING PARAMETERS -->
         ${inst.pid ? `
           <div class="control-card" style="font-family: var(--font-mono); font-size: 11px;">
-            <span class="control-card-title">Tuning Parameters</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span class="control-card-title">Tuning Parameters</span>
+              <button class="btn-control btn-secondary" id="fp-tuning-apply-btn" style="padding: 2px 8px; font-size: 10px; height: 22px;">Save Tuning</button>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-top: var(--space-1);">
               <div style="background: var(--bg-surface-2); padding: 4px; border-radius: var(--radius-sm); text-align: center;">
                 <div style="color: var(--text-tertiary); font-size: 9px;">Kp (Gain)</div>
-                <div style="font-weight: 700; color: var(--text-primary);">${inst.pid.kp}</div>
+                <input type="number" id="fp-tuning-kp" class="sp-input" style="font-size: 11px; height: 24px; text-align: center;" value="${inst.pid.kp}" step="0.1" />
               </div>
               <div style="background: var(--bg-surface-2); padding: 4px; border-radius: var(--radius-sm); text-align: center;">
-                <div style="color: var(--text-tertiary); font-size: 9px;">Ti (min)</div>
-                <div style="font-weight: 700; color: var(--text-primary);">${inst.pid.ti}</div>
+                <div style="color: var(--text-tertiary); font-size: 9px;">Ti (sec)</div>
+                <input type="number" id="fp-tuning-ti" class="sp-input" style="font-size: 11px; height: 24px; text-align: center;" value="${inst.pid.ti}" step="1" />
               </div>
               <div style="background: var(--bg-surface-2); padding: 4px; border-radius: var(--radius-sm); text-align: center;">
-                <div style="color: var(--text-tertiary); font-size: 9px;">Td (min)</div>
-                <div style="font-weight: 700; color: var(--text-primary);">${inst.pid.td}</div>
+                <div style="color: var(--text-tertiary); font-size: 9px;">Td (sec)</div>
+                <input type="number" id="fp-tuning-td" class="sp-input" style="font-size: 11px; height: 24px; text-align: center;" value="${inst.pid.td || 0}" step="0.5" />
               </div>
             </div>
           </div>
@@ -177,16 +199,20 @@ export class FaceplateModal {
   attachHandlers() {
     const inst = this.engine.instruments[this.currentTag];
     if (!inst) return;
+    const ctrl = this.engine.controllers ? this.engine.controllers[this.currentTag] : null;
 
     // Close button
     const closeBtn = this.container.querySelector("#faceplate-close-btn");
     if (closeBtn) closeBtn.addEventListener("click", () => this.close());
 
-    // Mode buttons
+    // Mode buttons with bumpless transfer
     this.container.querySelectorAll(".mode-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const mode = btn.getAttribute("data-mode");
         inst.mode = mode;
+        if (ctrl) {
+          ctrl.setMode(mode === "MAN" ? "MANUAL" : (mode === "CAS" ? "CASCADE" : "AUTO"));
+        }
         this.render();
       });
     });
@@ -199,6 +225,7 @@ export class FaceplateModal {
         const newSp = parseFloat(spInput.value);
         if (!isNaN(newSp)) {
           inst.sp = newSp;
+          if (ctrl) ctrl.setSetpoint(newSp);
           this.render();
         }
       });
@@ -216,7 +243,32 @@ export class FaceplateModal {
       opSlider.addEventListener("input", (e) => {
         const newOp = parseFloat(e.target.value);
         inst.op = newOp;
+        if (ctrl) ctrl.setManualOutput(newOp);
         if (opSliderVal) opSliderVal.textContent = `${newOp}%`;
+      });
+    }
+
+    // PID Tuning Save Button
+    const tuningBtn = this.container.querySelector("#fp-tuning-apply-btn");
+    if (tuningBtn && inst.pid) {
+      tuningBtn.addEventListener("click", () => {
+        const kp = parseFloat(this.container.querySelector("#fp-tuning-kp").value);
+        const ti = parseFloat(this.container.querySelector("#fp-tuning-ti").value);
+        const td = parseFloat(this.container.querySelector("#fp-tuning-td").value);
+        if (!isNaN(kp) && !isNaN(ti) && !isNaN(td)) {
+          inst.pid.kp = kp;
+          inst.pid.ti = ti;
+          inst.pid.td = td;
+          if (ctrl) {
+            ctrl.kp = kp;
+            ctrl.ti = Math.max(0.1, ti);
+            ctrl.td = td;
+          }
+          tuningBtn.textContent = "Saved!";
+          setTimeout(() => {
+            if (tuningBtn) tuningBtn.textContent = "Save Tuning";
+          }, 1500);
+        }
       });
     }
   }

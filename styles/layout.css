@@ -1,6 +1,7 @@
 /* ==========================================================================
    LAYOUT ARCHITECTURE & STRUCTURE
-   Adhering to Better_Layout.md & Better_Typography.md
+   Industrial Obsidian Theme
+   Conforming to Frontend_Design.md, Better_Layout.md & Better_Typography.md
    ========================================================================== */
 
 #app-container {
@@ -17,7 +18,6 @@
   height: var(--header-height);
   min-height: var(--header-height);
   background: var(--bg-surface-0);
-  backdrop-filter: var(--backdrop-blur);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -33,36 +33,39 @@
 }
 
 .brand-badge {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-cyan) 0%, #0369a1 100%);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 900;
-  font-size: 16px;
-  color: var(--text-inverse);
-  box-shadow: var(--shadow-glow-cyan);
+  font-weight: 800;
+  font-size: 14px;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .brand-meta {
   display: flex;
   flex-direction: column;
+  gap: 1px;
 }
 
 .brand-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
-  text-wrap: balance;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .brand-subtitle {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   font-family: var(--font-mono);
+  letter-spacing: 0.01em;
 }
 
 .header-actions {
@@ -71,13 +74,13 @@
   gap: var(--space-3);
 }
 
-/* Controls distinct from content (Better_Layout.md #2) */
+/* Precision Controls (Better_Layout.md #2: Keep Controls Distinct from Content) */
 .btn-control {
-  height: 38px;
-  min-height: 38px;
+  height: 34px;
+  min-height: 34px;
   padding-inline: var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -87,64 +90,64 @@
   background: var(--bg-surface-2);
   color: var(--text-primary);
   box-shadow: var(--shadow-elevation-1);
-  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  user-select: none;
 }
 
 .btn-control:hover {
   background: var(--bg-surface-hover);
   border-color: var(--border-strong);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-elevation-2);
 }
 
 .btn-control:active {
-  transform: scale(0.96);
+  transform: scale(0.98);
   background: var(--bg-surface-active);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
-  border-color: var(--color-cyan);
+  background: #0284c7;
+  border-color: #38bdf8;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-  border-color: #67e8f9;
+  background: #0369a1;
+  border-color: #7dd3fc;
 }
 
 .btn-danger {
-  background: rgba(225, 29, 72, 0.2);
+  background: rgba(244, 63, 94, 0.15);
   border-color: var(--border-rose);
   color: var(--text-rose);
 }
 
 .btn-danger:hover {
-  background: rgba(225, 29, 72, 0.35);
-  box-shadow: var(--shadow-glow-rose);
+  background: rgba(244, 63, 94, 0.25);
 }
 
-/* Live Operational Status Badge */
+/* Live Operational Status Pill */
 .status-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid var(--border-emerald);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-emerald);
+  color: #34d399;
+  letter-spacing: 0.02em;
 }
 
 .status-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--color-emerald);
-  box-shadow: 0 0 8px var(--color-emerald);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
   animation: pulse-dot 2s infinite ease-in-out;
 }
 
@@ -157,41 +160,48 @@
 .kpi-ribbon {
   height: var(--kpi-ribbon-height);
   min-height: var(--kpi-ribbon-height);
-  background: var(--bg-surface-1);
+  background: #080c14;
   border-bottom: 1px solid var(--border-subtle);
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   align-items: center;
   padding-inline: var(--space-4);
-  gap: var(--space-3);
+  gap: var(--space-2);
   z-index: 30;
 }
 
 .kpi-item {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
+  gap: 6px;
   padding-inline: var(--space-2);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.kpi-item:last-child {
+  border-right: none;
 }
 
 .kpi-label {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .kpi-value {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
 }
 
 .kpi-unit {
   font-size: 10px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
 }
 
@@ -225,51 +235,74 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-tertiary);
-  padding-inline: var(--space-2);
-  margin-bottom: var(--space-1);
+  padding-inline: 8px;
+  margin-bottom: 6px;
 }
 
 .nav-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
   list-style: none;
 }
 
+/* NO AI-SLOP BORDERS: Refined, authentic active state with sleek left indicator bar */
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 10px 12px;
-  min-height: 40px;
+  gap: 10px;
+  padding: 8px 12px;
+  min-height: 36px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   border: 1px solid transparent;
+  user-select: none;
+}
+
+.nav-link svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: color 0.15s ease;
 }
 
 .nav-link:hover {
   background: var(--bg-surface-hover);
   color: var(--text-primary);
+  border-color: transparent;
 }
 
-.nav-link:active {
-  transform: scale(0.96);
+.nav-link:hover svg {
+  color: var(--text-primary);
 }
 
 .nav-link.active {
-  background: rgba(6, 182, 212, 0.15);
-  border-color: var(--border-cyan);
-  color: var(--text-cyan);
+  background: rgba(56, 189, 248, 0.08);
+  color: #f8fafc;
   font-weight: 600;
+  border-color: transparent;
 }
 
-.nav-icon {
-  font-size: 14px;
+.nav-link.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-cyan);
+}
+
+.nav-link.active svg {
+  color: var(--color-cyan);
 }
 
 /* CENTRAL FLOWSHEET CANVAS VIEWPORT */
@@ -284,13 +317,12 @@
   justify-content: center;
 }
 
-/* FLOATING OVERLAY CONTROLS (Controls float, Content bleeds - Better_Layout.md #8) */
+/* FLOATING OVERLAY CONTROLS (Better_Layout.md #8: Controls float, Content bleeds) */
 .viewport-toolbar {
   position: absolute;
   top: var(--space-4);
   right: var(--space-4);
   background: var(--bg-surface-0);
-  backdrop-filter: var(--backdrop-blur);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   padding: var(--space-2);
@@ -306,7 +338,6 @@
   bottom: var(--space-4);
   left: var(--space-4);
   background: var(--bg-surface-0);
-  backdrop-filter: var(--backdrop-blur);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
@@ -314,7 +345,7 @@
   align-items: center;
   gap: var(--space-4);
   box-shadow: var(--shadow-card);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-secondary);
   z-index: 35;
 }

@@ -1,190 +1,147 @@
 /* ==========================================================================
    SCADA TOKENS & SYSTEM DESIGN PALETTE
-   Conforming to Beter_UI.md, ios_Design.md, Better_Layout.md & Better_Typography.md
-   Theme: Apple-Grade Industrial Dark Glassmorphism (Mission-Control Chemical Twin)
+   Industrial Obsidian Theme (Mission-Control Chemical Digital Twin)
+   Conforming to Frontend_Design.md, Better_Layout.md & Better_Typography.md
    ========================================================================== */
 
-:root {
-  /* ========================================================================
-     LIGHT MODE PALETTE (Default - Apple Clean Laboratory SCADA)
-     Conforming to Beter_UI.md, ios_Design.md, Better_Layout.md & Better_Typography.md
-     ======================================================================== */
-  --bg-app: #f1f5f9;
-  --bg-surface-0: #ffffff;
-  --bg-surface-1: rgba(255, 255, 255, 0.92);
-  --bg-surface-2: rgba(248, 250, 252, 0.95);
-  --bg-surface-3: rgba(241, 245, 249, 0.98);
-  --bg-surface-glass: rgba(255, 255, 255, 0.82);
-  --bg-surface-hover: rgba(226, 232, 240, 0.75);
-  --bg-surface-active: rgba(203, 213, 225, 0.85);
-
-  /* Borders for Structure (Beter_UI.md Rule 3: Borders for structure, shadows for elevation) */
-  --border-subtle: rgba(148, 163, 184, 0.32);
-  --border-medium: rgba(148, 163, 184, 0.5);
-  --border-strong: rgba(71, 85, 105, 0.7);
-  --border-cyan: rgba(2, 132, 199, 0.55);
-  --border-emerald: rgba(5, 150, 105, 0.55);
-  --border-amber: rgba(217, 119, 6, 0.55);
-  --border-rose: rgba(225, 29, 72, 0.6);
-
-  /* Primary Engineering Accents */
-  --color-cyan: #0284c7;
-  --color-cyan-glow: rgba(2, 132, 199, 0.22);
-  --color-teal: #0d9488;
-  --color-emerald: #059669;
-  --color-emerald-glow: rgba(5, 150, 105, 0.22);
-  --color-amber: #d97706;
-  --color-amber-glow: rgba(217, 119, 6, 0.22);
-  --color-rose: #e11d48;
-  --color-rose-glow: rgba(225, 29, 72, 0.25);
-  --color-blue: #2563eb;
-  --color-purple: #9333ea;
-
-  /* Chemical Service Palette (ISA-5.1 Fluid Line Standards in Light Mode) */
-  --pipe-bauxite-slurry: #b45309;  /* Bauxite Ore Slurry (Deep Amber) */
-  --pipe-calcined-ore: #9a3412;    /* Calcined Solid Stream (Rust) */
-  --pipe-hcl-acid: #db2777;        /* 32 wt% HCl Concentrated Acid (Deep Magenta) */
-  --pipe-plp-liquor: #7c3aed;      /* Pregnant Leach Liquor AlCl3 (Deep Violet) */
-  --pipe-pac-product: #0284c7;     /* Finished Liquid PAC (Rich Cyan-Blue) */
-  --pipe-cooling-water: #2563eb;   /* CWS / CWR Utilities (Cobalt Blue) */
-  --pipe-flue-gas: #475569;        /* Exhaust Off-Gas (Deep Slate) */
-  --pipe-process-water: #0284c7;   /* Process Water (Sky Blue) */
-  --pipe-magnetite: #334155;       /* Magnetite Byproduct (Iron Dark Slate) */
-  --pipe-silica: #64748b;          /* Purified Silica Cake (Muted Slate) */
-  --pipe-steam: #dc2626;           /* Saturated Heating Steam (Red) */
-
-  /* Text & Typography Hierarchy (ios_Design.md System Typography) */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
-
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
-  --text-inverse: #ffffff;
-  --text-cyan: #0284c7;
-  --text-emerald: #059669;
-  --text-amber: #d97706;
-  --text-rose: #e11d48;
-
-  /* Spacing Scale (4pt/8pt Base Unit - ios_Design.md & Better_Layout.md) */
-  --space-1: 4px;
-  --space-2: 8px;   /* Intra-group micro gap */
-  --space-3: 12px;  /* Control breathing room */
-  --space-4: 16px;  /* Inter-group standard gap */
-  --space-5: 20px;
-  --space-6: 24px;  /* Module separation */
-  --space-8: 32px;  /* Section clearance */
-  --space-10: 40px;
-
-  /* Concentric Border Radii (Beter_UI.md Rule 1: outerRadius = innerRadius + padding) */
-  --radius-xs: 4px;
-  --radius-sm: 8px;   /* Inner buttons, badges, inputs */
-  --radius-md: 12px;  /* Cards, groupings */
-  --radius-lg: 16px;  /* Modals, panels */
-  --radius-xl: 24px;  /* Concentric containers: 16px padding + 8px inner = 24px */
-  --radius-2xl: 32px;
-  --radius-full: 9999px;
-
-  /* Layered Shadows for Elevation (Beter_UI.md Rule 3) */
-  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-elevation-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-card: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --shadow-glow-cyan: 0 0 16px rgba(2, 132, 199, 0.25);
-  --shadow-glow-rose: 0 0 18px rgba(225, 29, 72, 0.25);
-  --backdrop-blur: blur(20px) saturate(180%);
-
-  /* Layout Viewport Geometry */
-  --header-height: 64px;
-  --kpi-ribbon-height: 48px;
-  --sidebar-width: 280px;
-
-  /* Apple iOS 44pt Touch Target Standard (ios_Design.md empathy-touch-targets) */
-  --touch-target-min: 44px;
-}
-
-/* ==========================================================================
-   DARK MODE PALETTE (Available via Theme Toggle)
-   ========================================================================== */
+:root,
 [data-theme="dark"] {
-  --bg-app: #060913;
-  --bg-surface-0: rgba(11, 17, 33, 0.92);
-  --bg-surface-1: rgba(16, 24, 46, 0.78);
-  --bg-surface-2: rgba(23, 34, 64, 0.68);
-  --bg-surface-3: rgba(30, 45, 84, 0.58);
-  --bg-surface-glass: rgba(15, 23, 42, 0.65);
-  --bg-surface-hover: rgba(38, 56, 102, 0.45);
-  --bg-surface-active: rgba(45, 68, 124, 0.65);
+  /* ========================================================================
+     OBSIDIAN DARK THEME (Permanent Chemical Plant SCADA)
+     ======================================================================== */
+  --bg-app: #07090e;
+  --bg-surface-0: #0b0f17;
+  --bg-surface-1: #101522;
+  --bg-surface-2: #151b2a;
+  --bg-surface-3: #1a2236;
+  --bg-surface-glass: rgba(11, 15, 23, 0.88);
+  --bg-surface-hover: rgba(255, 255, 255, 0.05);
+  --bg-surface-active: rgba(255, 255, 255, 0.09);
 
-  --border-subtle: rgba(148, 163, 184, 0.12);
-  --border-medium: rgba(148, 163, 184, 0.22);
-  --border-strong: rgba(148, 163, 184, 0.35);
-  --border-cyan: rgba(6, 182, 212, 0.45);
-  --border-emerald: rgba(16, 185, 129, 0.45);
-  --border-amber: rgba(245, 158, 11, 0.45);
-  --border-rose: rgba(244, 63, 94, 0.55);
+  /* Subtle Structural Borders (No Cartoonish Neon Glowing Rings) */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --border-cyan: rgba(56, 189, 248, 0.30);
+  --border-emerald: rgba(16, 185, 129, 0.30);
+  --border-amber: rgba(245, 158, 11, 0.30);
+  --border-rose: rgba(244, 63, 94, 0.35);
 
-  --color-cyan: #06b6d4;
-  --color-cyan-glow: rgba(6, 182, 212, 0.25);
+  /* Precision Engineering Accents */
+  --color-cyan: #38bdf8;
   --color-teal: #14b8a6;
   --color-emerald: #10b981;
-  --color-emerald-glow: rgba(16, 185, 129, 0.25);
   --color-amber: #f59e0b;
-  --color-amber-glow: rgba(245, 158, 11, 0.25);
   --color-rose: #f43f5e;
-  --color-rose-glow: rgba(244, 63, 94, 0.35);
   --color-blue: #3b82f6;
   --color-purple: #a855f7;
 
-  --pipe-bauxite-slurry: #d97706;
-  --pipe-calcined-ore: #b45309;
+  /* Chemical Process Piping Palette (ISA-5.1 High-Contrast on Dark) */
+  --pipe-bauxite-slurry: #f59e0b;
+  /* Bauxite Ore Slurry (Deep Amber) */
+  --pipe-calcined-ore: #ea580c;
+  /* Calcined Solid Stream (Rust) */
   --pipe-hcl-acid: #ec4899;
-  --pipe-plp-liquor: #8b5cf6;
-  --pipe-pac-product: #06b6d4;
+  /* 32 wt% HCl Concentrated Acid (Magenta) */
+  --pipe-plp-liquor: #a855f7;
+  /* Pregnant Leach Liquor AlCl3 (Violet) */
+  --pipe-pac-product: #38bdf8;
+  /* Finished Liquid PAC (Sky Cyan) */
   --pipe-cooling-water: #3b82f6;
+  /* CWS / CWR Utilities (Cobalt Blue) */
   --pipe-flue-gas: #64748b;
+  /* Exhaust Off-Gas (Muted Slate) */
   --pipe-process-water: #0ea5e9;
+  /* Process Water (Azure) */
   --pipe-magnetite: #475569;
-  --pipe-silica: #e2e8f0;
+  /* Magnetite Byproduct (Iron Dark Slate) */
+  --pipe-silica: #cbd5e1;
+  /* Purified Silica Cake (Light Slate) */
   --pipe-steam: #ef4444;
+  /* Saturated Heating Steam (Red) */
+
+  /* Text & Typography Hierarchy */
+  --font-sans: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
-  --text-inverse: #020617;
-  --text-cyan: #22d3ee;
+  --text-inverse: #030712;
+  --text-cyan: #38bdf8;
   --text-emerald: #34d399;
   --text-amber: #fbbf24;
   --text-rose: #fb7185;
 
-  --shadow-elevation-1: 0 2px 4px -1px rgba(0, 0, 0, 0.25), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
-  --shadow-elevation-2: 0 4px 12px -2px rgba(0, 0, 0, 0.35), 0 2px 6px -1px rgba(0, 0, 0, 0.25);
-  --shadow-card: 0 12px 32px -4px rgba(0, 0, 0, 0.5), 0 4px 16px -2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-glow-cyan: 0 0 20px rgba(6, 182, 212, 0.35);
-  --shadow-glow-rose: 0 0 24px rgba(244, 63, 94, 0.45);
+  /* Spacing Scale (4pt/8pt Base Unit - Better_Layout.md) */
+  --space-1: 4px;
+  --space-2: 8px;
+  /* Intra-group micro gap */
+  --space-3: 12px;
+  /* Control breathing room */
+  --space-4: 16px;
+  /* Inter-group standard gap */
+  --space-5: 20px;
+  --space-6: 24px;
+  /* Module separation */
+  --space-8: 32px;
+  /* Section clearance */
+  --space-10: 40px;
+
+  /* Concentric Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  /* Inner buttons, badges, inputs */
+  --radius-md: 10px;
+  /* Cards, groupings */
+  --radius-lg: 14px;
+  /* Modals, panels */
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Elevation Shadows */
+  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-elevation-2: 0 4px 14px -2px rgba(0, 0, 0, 0.65);
+  --shadow-card: 0 12px 32px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-panel: -12px 0 36px rgba(0, 0, 0, 0.75);
+  --backdrop-blur: blur(20px) saturate(180%);
+
+  /* Layout Viewport Geometry */
+  --header-height: 60px;
+  --kpi-ribbon-height: 46px;
+  --sidebar-width: 270px;
 }
 
 /* Base Reset with Better_Typography.md font smoothing */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   overflow: hidden;
   background-color: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tabular Numbers for all real-time dynamic values (Better_Typography.md #11) */
-.tabular-nums, .tag-val, .metric-value, .stream-card-val, .gauge-val, .kpi-value {
+/* Tabular Numbers for all real-time dynamic values */
+.tabular-nums,
+.tag-val,
+.metric-value,
+.stream-card-val,
+.gauge-val,
+.kpi-value {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
 }

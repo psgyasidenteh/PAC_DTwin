@@ -13,18 +13,60 @@ export const INITIAL_EQUIPMENT = {
     type: "Comminution",
     edt: {
       motorKw: 15.0,
+      shaftPowerKw: 2.89,
+      electricalPowerKw: 4.53,
+      motorCurrentA: 5.8,
+      powerFactor: 0.76,
       ratedThroughputTph: 2.5,
       actualThroughputTph: 0.756,
       jawGapeMm: "400 x 600",
       vibrationMmS: 1.8,
       linerWearPercent: 14.5,
+      remainingLinerHours: 2140,
       status: "RUNNING"
     },
     pip: {
       feedSizeD80Mm: 120.0,
       productSizeD80Mm: 15.0,
       reductionRatio: 8.0,
-      specificEnergyKwhT: 3.82
+      specificEnergyKwhT: 3.82,
+      workIndexWi: 13.5
+    }
+  },
+  "BN-101": {
+    tag: "BN-101",
+    name: "Raw Ore Day Bin",
+    area: 100,
+    type: "Solids Storage Silo",
+    edt: {
+      totalVolumeM3: 15.0,
+      levelPercent: 68.5,
+      storedMassTonnes: 14.9,
+      bottomStressKPa: 24.2,
+      status: "RUNNING"
+    },
+    pip: {
+      bulkDensityKgM3: 1450,
+      moisturePercent: 8.4,
+      bridgingRiskPercent: 21.8,
+      flowRegime: "MASS_FLOW_HEALTHY"
+    }
+  },
+  "FD-101": {
+    tag: "FD-101",
+    name: "Gravimetric Weigh Belt Feeder",
+    area: 100,
+    type: "Feeding & Conveying",
+    edt: {
+      motorKw: 2.2,
+      beltSpeedMS: 0.12,
+      beltWidthMm: 650,
+      vfdSpeedPercent: 52.4,
+      status: "RUNNING"
+    },
+    pip: {
+      feedRateKgH: 755.99,
+      beltLoadingKgM: 1.75
     }
   },
   "RK-201": {

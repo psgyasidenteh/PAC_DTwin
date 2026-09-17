@@ -46,6 +46,45 @@ export const INITIAL_INSTRUMENTS = {
     alarm: "NORMAL",
     pid: { kp: 1.8, ti: 45.0, td: 0.0 }
   },
+  "II-101": {
+    tag: "II-101",
+    name: "Crusher Motor Current",
+    area: 100,
+    type: "II",
+    pv: 5.8,
+    sp: 6.0,
+    op: 0.0,
+    units: "A",
+    mode: "AUTO",
+    limits: { low: 0, high: 35, alLow: 1.5, alHigh: 22.0, tripHigh: 28.0 },
+    alarm: "NORMAL"
+  },
+  "VIT-101": {
+    tag: "VIT-101",
+    name: "Crusher Bearing Vibration",
+    area: 100,
+    type: "VIT",
+    pv: 1.8,
+    sp: 1.5,
+    op: 0.0,
+    units: "mm/s",
+    mode: "AUTO",
+    limits: { low: 0, high: 15, alLow: 0.2, alHigh: 4.5, tripHigh: 7.0 },
+    alarm: "NORMAL"
+  },
+  "ZSS-101": {
+    tag: "ZSS-101",
+    name: "Feeder Belt Zero-Speed Switch",
+    area: 100,
+    type: "ZSS",
+    pv: 1.0,
+    sp: 1.0,
+    op: 0.0,
+    units: "state",
+    mode: "AUTO",
+    limits: { low: 0, high: 1, alLow: 0, tripLow: 0 },
+    alarm: "NORMAL"
+  },
 
   // Area 200: Rotary Kiln
   "TIC-201": {
