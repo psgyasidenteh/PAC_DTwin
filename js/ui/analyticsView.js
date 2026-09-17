@@ -9,12 +9,13 @@
  */
 
 export class AnalyticsView {
-  constructor(containerId, engine, hazopSim, softSensors, econEngine) {
+  constructor(containerId, engine, hazopSim, softSensors, econEngine, esgEngine) {
     this.container = document.getElementById(containerId);
     this.engine = engine;
     this.hazopSim = hazopSim;
     this.softSensors = softSensors;
     this.econEngine = econEngine;
+    this.esgEngine = esgEngine;
     this.activeSubTab = "soft-sensors"; // 'soft-sensors', 'hazop', 'economics', 'streams-table', 'equipment-twin'
     this.activeEkfArea = "all"; // 'all', '100', '200', '300', '400', '500', '600', '700'
     this.selectedBenchTag = "SS-601";
@@ -22,6 +23,12 @@ export class AnalyticsView {
     this.hazopLogFilter = "ALL"; // 'ALL', 'CRITICAL', 'WARN', 'NORMAL'
     this.hazopWorksheetArea = "ALL";
     this.lastRenderedLogCount = 0;
+
+    // Industrial Techno-Economics & Ghana ESG Sub-navigation & State
+    this.econActiveSubTab = "overview"; // 'overview' | 'dcf' | 'capex' | 'labour' | 'esg'
+    this.econCurrency = "USD"; // 'USD' | 'GHS'
+    this.econParamCategory = "feedstock"; // 'feedstock' | 'commercial' | 'utilities' | 'finance'
+
   }
 
   showTab(tabName) {
@@ -939,139 +946,603 @@ export class AnalyticsView {
   }
 
   // =========================================================================
-  // 3. TECHNOECONOMICS & GHANA ESG TRACKER
+  // 3. INDUSTRIAL TECHNO-ECONOMICS & GHANA ESG SUITE
+  // Grounded in PAC_Economics_Final.xlsx and Ghana Regulatory Frameworks
   // =========================================================================
   renderEconomics() {
     const s101 = this.engine.getStream("101");
     const s201 = this.engine.getStream("201");
     const s710 = this.engine.getStream("710");
-    const hclKgH = (s101 ? s101.massFlowKgH : 755.99) * this.engine.instruments["FFIC-601"].pv;
-    const caAluminate = this.engine.equipment["R-701"].pip.caDosingRateKgH;
+    const hclKgH = (s101 ? s101.massFlowKgH : 755.99) * (this.engine.instruments["FFIC-601"] ? this.engine.instruments["FFIC-601"].pv : 3.02);
+    const caAluminate = (this.engine.equipment["R-701"] && this.engine.equipment["R-701"].pip) ? this.engine.equipment["R-701"].pip.caDosingRateKgH : 650.0;
+    const bauxiteKgH = s101 ? s101.massFlowKgH : 755.99;
+    const fuelGasKgH = s201 ? s201.massFlowKgH : 329.25;
+    const pacKgH = s710 ? s710.massFlowKgH : 2045.0;
 
-    const econ = this.econEngine.calculate({
-      bauxiteFeedKgH: s101 ? s101.massFlowKgH : 755.99,
+    const liveEcon = this.econEngine.calculateLiveEconomics({
+      bauxiteFeedKgH: bauxiteKgH,
       hclFeedKgH: hclKgH,
       caAluminateKgH: caAluminate,
-      fuelGasKgH: s201 ? s201.massFlowKgH : 174.27,
-      pacProductKgH: s710 ? s710.massFlowKgH : 2045.0,
-      powerKw: 210.0
+      fuelGasKgH: fuelGasKgH,
+      pacProductKgH: pacKgH,
+      powerKw: 150.0
     });
 
-    const isFavorable = econ.unitCostPerTonne <= econ.targetUnitCostBenchmark;
+    const liveEsg = this.esgEngine ? this.esgEngine.calculateEsgMetrics({
+      pacProductKgH: pacKgH,
+      fuelGasKgH: fuelGasKgH,
+      powerKw: 150.0,
+      hclFeedKgH: hclKgH
+    }) : null;
+
+    const dcf = this.econEngine.calculate20YearDcf();
 
     return `
-      <div style="display: flex; flex-direction: column; gap: var(--space-5);">
-        <!-- Top Metrics Cards -->
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- SUBTAB NAVIGATION & DUAL-CURRENCY SWITCHER -->
+        <div class="econ-nav-bar">
+          <button class="econ-tab-btn ${this.econActiveSubTab === 'overview' ? 'active' : ''}" data-econ-subtab="overview">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            Executive Cockpit & Live Economics
+          </button>
+          <button class="econ-tab-btn ${this.econActiveSubTab === 'dcf' ? 'active' : ''}" data-econ-subtab="dcf">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            20-Year DCF Cash Flow Matrix
+          </button>
+          <button class="econ-tab-btn ${this.econActiveSubTab === 'capex' ? 'active' : ''}" data-econ-subtab="capex">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Turton CAPEX & Bare Module Registry
+          </button>
+          <button class="econ-tab-btn ${this.econActiveSubTab === 'labour' ? 'active' : ''}" data-econ-subtab="labour">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Labour Force & Local Content (112)
+          </button>
+          <button class="econ-tab-btn ${this.econActiveSubTab === 'esg' ? 'active' : ''}" data-econ-subtab="esg">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Ghana EPA Act 490 & GWCL Impact
+          </button>
+
+          <div class="econ-currency-pill">
+            <button class="currency-toggle-btn ${this.econCurrency === 'USD' ? 'active' : ''}" data-currency="USD">USD ($)</button>
+            <button class="currency-toggle-btn ${this.econCurrency === 'GHS' ? 'active' : ''}" data-currency="GHS">GHS (GH₵)</button>
+          </div>
+        </div>
+
+        <!-- ACTIVE SUBTAB VIEW CONTAINER -->
+        <div id="econ-subtab-container">
+          ${this.renderEconSubTabContent(liveEcon, liveEsg, dcf)}
+        </div>
+      </div>
+    `;
+  }
+
+  renderEconSubTabContent(liveEcon, liveEsg, dcf) {
+    switch (this.econActiveSubTab) {
+      case "overview": return this.renderEconOverview(liveEcon, liveEsg, dcf);
+      case "dcf": return this.renderEconDcf(dcf);
+      case "capex": return this.renderEconCapex();
+      case "labour": return this.renderEconLabour();
+      case "esg": return this.renderEconEsg(liveEsg);
+      default: return this.renderEconOverview(liveEcon, liveEsg, dcf);
+    }
+  }
+
+  fmtMoney(usdVal) {
+    const rate = this.econEngine.params?.ghsPerUsd ?? this.econEngine.ghsPerUsd;
+    if (this.econCurrency === "GHS") {
+      const ghs = usdVal * rate;
+      return "GH₵ " + ghs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return "$ " + usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  fmtMoneyShort(usdVal) {
+    const rate = this.econEngine.params?.ghsPerUsd ?? this.econEngine.ghsPerUsd;
+    const isGhs = this.econCurrency === "GHS";
+    const val = isGhs ? usdVal * rate : usdVal;
+    const prefix = isGhs ? "GH₵ " : "$ ";
+    if (Math.abs(val) >= 1e6) {
+      return prefix + (val / 1e6).toFixed(2) + "M";
+    } else if (Math.abs(val) >= 1e3) {
+      return prefix + (val / 1e3).toFixed(1) + "k";
+    }
+    return prefix + val.toFixed(2);
+  }
+
+  // Parameter Definitions categorized by chemical plant domain
+  getParamDefinitions() {
+    return {
+      feedstock: {
+        title: "Feedstocks & Mineral Ore Grade",
+        description: "Raw bauxite ore assay, acid leaching reagents, and rotary kiln reduction fuel costs.",
+        params: [
+          {
+            key: "bauxiteGradeAl2o3",
+            name: "Awaso Bauxite Ore Grade (Al₂O₃ wt%)",
+            desc: "Ore grade inversely scales mine feed tonnage (50% vs 59.7% base requires +19.4% raw ore feed).",
+            min: 40.0,
+            max: 65.0,
+            step: 0.1,
+            unit: "%",
+            decimals: 1
+          },
+          {
+            key: "costBauxitePerTonne",
+            name: "Awaso Bauxite ROM Ore (Mine-Gate)",
+            desc: "Direct run-of-mine bauxite contract pricing from Western Region Awaso deposit.",
+            min: 15.0,
+            max: 75.0,
+            step: 1.0,
+            unit: "$/t",
+            decimals: 2
+          },
+          {
+            key: "costHcl32PerTonne",
+            name: "Hydrochloric Acid (32 wt% HCl)",
+            desc: "Primary dissolution reagent in Area 600 CSTR cascade. High cost sensitivity.",
+            min: 100.0,
+            max: 350.0,
+            step: 5.0,
+            unit: "$/t",
+            decimals: 2
+          },
+          {
+            key: "costCaAluminatePerTonne",
+            name: "Calcium Aluminate (CaAl₂O₄)",
+            desc: "Reagent dosed in reactor R-701 to adjust basicity to 47.3% and form Keggin polycations.",
+            min: 180.0,
+            max: 500.0,
+            step: 5.0,
+            unit: "$/t",
+            decimals: 2
+          },
+          {
+            key: "costCoPerTonne",
+            name: "Syngas Fuel / CO Reductant",
+            desc: "Carbon monoxide reductant gas fired in Kiln K-201 to convert hematite to magnetite.",
+            min: 250.0,
+            max: 700.0,
+            step: 10.0,
+            unit: "$/t",
+            decimals: 2
+          }
+        ]
+      },
+      commercial: {
+        title: "Commercial Offtake & By-Product Credits",
+        description: "Domestic GWCL import substitution, ECOWAS export tariffs, and circular economy by-products.",
+        params: [
+          {
+            key: "sellingPriceDomestic",
+            name: "GWCL Domestic Offtake Price",
+            desc: "Import-substitution pricing for national municipal water purification headworks.",
+            min: 350.0,
+            max: 600.0,
+            step: 5.0,
+            unit: "$/t",
+            decimals: 2
+          },
+          {
+            key: "sellingPriceExport",
+            name: "ECOWAS Regional Export Price",
+            desc: "Cross-border export to Nigeria, Côte d'Ivoire, Senegal, and Burkina Faso (20% CET shield).",
+            min: 380.0,
+            max: 700.0,
+            step: 5.0,
+            unit: "$/t",
+            decimals: 2
+          },
+          {
+            key: "domesticVolumeTpa",
+            name: "Domestic Offtake Allocation (GWCL)",
+            desc: "Tonnage allocated to domestic water security before regional export allocation.",
+            min: 1000.0,
+            max: 12000.0,
+            step: 250.0,
+            unit: "t/yr",
+            decimals: 0
+          },
+          {
+            key: "priceSilicaPozzolanPerTonne",
+            name: "Silica Pozzolan By-Product",
+            desc: "Beneficiated Area 600 silica filter cake sold to Ghacem and CIMAF as pozzolanic binder.",
+            min: 5.0,
+            max: 50.0,
+            step: 1.0,
+            unit: "$/t",
+            decimals: 2
+          },
+          {
+            key: "priceMagnetitePerTonne",
+            name: "Magnetite (Fe₃O₄) Heavy Media",
+            desc: "WHIMS magnetic reject sold for dense media coal/mineral washing or steelmaking.",
+            min: 15.0,
+            max: 120.0,
+            step: 5.0,
+            unit: "$/t",
+            decimals: 2
+          }
+        ]
+      },
+      utilities: {
+        title: "Energy, Utilities & Operating Profile",
+        description: "Grid electricity tariffs, River Tano cooling water, and annual plant operating availability.",
+        params: [
+          {
+            key: "costElectricityPerKwh",
+            name: "PURC Electricity Tariff (MV SLT)",
+            desc: "Public Utilities Regulatory Commission Medium Voltage Special Load Tariff for industrial users.",
+            min: 0.05,
+            max: 0.25,
+            step: 0.005,
+            unit: "$/kWh",
+            decimals: 4
+          },
+          {
+            key: "costCoolingWaterPerM3",
+            name: "Cooling Water Make-Up & Treatment",
+            desc: "Chemical conditioning, biocide, and River Tano raw water abstraction replenishment.",
+            min: 1.0,
+            max: 6.0,
+            step: 0.1,
+            unit: "$/m³",
+            decimals: 2
+          },
+          {
+            key: "capacityMultiplier",
+            name: "Plant Capacity Utilization",
+            desc: "Operational throughput ratio (1.0 = design 31,385 TPA PAC; 1.1 = 10% debottlenecking).",
+            min: 0.50,
+            max: 1.15,
+            step: 0.05,
+            unit: "x",
+            decimals: 2
+          },
+          {
+            key: "hoursPerYear",
+            name: "Annual Operating Hours",
+            desc: "Plant stream availability (7,920 h = 330 days @ 91.3% stream factor; remainder is scheduled turnaround).",
+            min: 6000,
+            max: 8400,
+            step: 24,
+            unit: "h/yr",
+            decimals: 0
+          }
+        ]
+      },
+      finance: {
+        title: "Project Finance & Fiscal Policy",
+        description: "WACC hurdle rates, Ghana location factor, 1D1F tax incentives, and EPC contingency.",
+        params: [
+          {
+            key: "discountRate",
+            name: "Discount Rate / WACC",
+            desc: "Weighted Average Cost of Capital (AfDB / Ghana Infrastructure Investment Fund hurdle).",
+            min: 0.04,
+            max: 0.16,
+            step: 0.005,
+            unit: "%",
+            multiplier: 100,
+            decimals: 1
+          },
+          {
+            key: "ghanaLocationFactor",
+            name: "Ghana Location Factor (LF)",
+            desc: "Turton bare module multiplier (1.35x baseline for ocean freight, port clearance, and inland transit).",
+            min: 1.05,
+            max: 1.70,
+            step: 0.05,
+            unit: "x",
+            decimals: 2
+          },
+          {
+            key: "corporateTaxRate",
+            name: "Corporate Income Tax Rate",
+            desc: "Ghana manufacturing concession rate (18.75% vs 25.0% standard corporate rate).",
+            min: 0.10,
+            max: 0.30,
+            step: 0.0125,
+            unit: "%",
+            multiplier: 100,
+            decimals: 2
+          },
+          {
+            key: "taxHolidayYears",
+            name: "Ghana 1D1F Tax Holiday",
+            desc: "Ministry of Trade & Industry 1D1F zero-corporate-tax exemption period (0 to 5 years).",
+            min: 0,
+            max: 5,
+            step: 1,
+            unit: "Years",
+            decimals: 0
+          },
+          {
+            key: "contingencyPercent",
+            name: "Project Contingency Provision",
+            desc: "Capital reserve for unforeseen site conditions, ground mechanics, and procurement escalation.",
+            min: 0.05,
+            max: 0.25,
+            step: 0.01,
+            unit: "%",
+            multiplier: 100,
+            decimals: 1
+          }
+        ]
+      }
+    };
+  }
+
+  // Render Category Navigation & Parameter Cards Grid
+  renderParamCategoryContent() {
+    const defs = this.getParamDefinitions();
+    const activeCat = defs[this.econParamCategory] || defs.feedstock;
+    const modifiedCount = this.econEngine.getModifiedParamsCount();
+
+    const categories = [
+      { id: "feedstock", label: "Feedstocks & Ore Grade", count: defs.feedstock.params.length },
+      { id: "commercial", label: "Commercial & Offtake", count: defs.commercial.params.length },
+      { id: "utilities", label: "Energy & Utilities", count: defs.utilities.params.length },
+      { id: "finance", label: "Finance & Capital", count: defs.finance.params.length }
+    ];
+
+    return `
+      <div class="control-card" style="padding: var(--space-4);">
+        <!-- Controller Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-3); flex-wrap: wrap; gap: var(--space-2);">
+          <div>
+            <div style="display: flex; align-items: center; gap: var(--space-2);">
+              <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">${activeCat.title}</span>
+              ${modifiedCount > 0 ? `<span class="econ-modified-pill">${modifiedCount} Modified</span>` : `<span style="font-size: 10px; color: #64748b; font-family: var(--font-mono);">Baseline Values</span>`}
+            </div>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+              ${activeCat.description} Real-time changes propagate instantly to Unit Cost ($/t), NPV, IRR, and 20-Year DCF.
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <button id="btn-reset-econ-sensitivity" class="btn-control" style="font-size: 10.5px; height: 28px; padding-inline: 10px; ${modifiedCount > 0 ? 'border-color: #38bdf8; color: #38bdf8;' : ''}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Reset Baseline (${modifiedCount} modified)
+            </button>
+          </div>
+        </div>
+
+        <!-- Domain Category Tabs -->
+        <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-2); overflow-x: auto;">
+          ${categories.map(c => `
+            <button class="econ-cat-btn ${this.econParamCategory === c.id ? 'active' : ''}" data-param-cat="${c.id}">
+              ${c.label} (${c.count})
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Parameter Cards Grid -->
+        <div class="econ-param-grid" id="econ-params-grid">
+          ${activeCat.params.map(p => {
+            const rawVal = this.econEngine.getParam(p.key);
+            const defaultRaw = this.econEngine.defaultParams[p.key];
+            const mult = p.multiplier || 1;
+            const displayVal = (rawVal * mult).toFixed(p.decimals);
+            const displayDefault = (defaultRaw * mult).toFixed(p.decimals);
+            const minDisp = (p.min * (mult === 1 ? 1 : mult)).toFixed(p.decimals);
+            const maxDisp = (p.max * (mult === 1 ? 1 : mult)).toFixed(p.decimals);
+            const stepDisp = (p.step * (mult === 1 ? 1 : mult)).toFixed(p.decimals === 0 ? 0 : (p.decimals > 2 ? p.decimals : 2));
+
+            const isModified = Math.abs(rawVal - defaultRaw) > 1e-5;
+            const diff = rawVal - defaultRaw;
+            let driftHtml = `<span class="econ-default-mark">Baseline</span>`;
+            if (isModified) {
+              const pct = ((diff / defaultRaw) * 100).toFixed(1);
+              const sign = diff > 0 ? "+" : "";
+              const col = diff > 0 ? "var(--color-cyan)" : "var(--color-amber)";
+              driftHtml = `<span class="econ-modified-pill" style="color: ${col}; border-color: ${col};">${sign}${pct}%</span>`;
+            }
+
+            return `
+              <div class="econ-param-card ${isModified ? 'modified' : ''}" id="econ-card-${p.key}">
+                <div class="econ-param-header">
+                  <span class="econ-param-title" title="${p.key}">${p.name}</span>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    ${driftHtml}
+                    <div class="econ-param-input-wrapper">
+                      <input type="number"
+                             class="econ-num-input"
+                             data-param-key="${p.key}"
+                             data-multiplier="${mult}"
+                             min="${minDisp}"
+                             max="${maxDisp}"
+                             step="${stepDisp}"
+                             value="${displayVal}" />
+                      <span class="econ-param-unit">${p.unit}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p style="font-size: 10px; color: var(--text-tertiary); line-height: 1.35; margin: 0;">
+                  ${p.desc}
+                </p>
+
+                <div style="margin-top: 4px;">
+                  <input type="range"
+                         class="econ-range-slider"
+                         data-param-key="${p.key}"
+                         data-multiplier="${mult}"
+                         min="${minDisp}"
+                         max="${maxDisp}"
+                         step="${stepDisp}"
+                         value="${displayVal}" />
+                  <div class="econ-param-bounds">
+                    <span>${minDisp} ${p.unit}</span>
+                    <span class="econ-default-mark">Base: ${displayDefault} ${p.unit}</span>
+                    <span>${maxDisp} ${p.unit}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // 1. EXECUTIVE OVERVIEW & WHAT-IF CONTROLLER
+  renderEconOverview(econ, esg, dcf) {
+    const isFavorable = econ.unitCostPerTonne <= econ.targetUnitCostBenchmark;
+    const p = this.econEngine.params;
+
+    // Dynamic annual revenues from current parameters
+    const domesticRev = p.domesticVolumeTpa * p.sellingPriceDomestic;
+    const exportRev = p.exportVolumeTpa * p.sellingPriceExport;
+    const pozzolanRev = 2062.13 * p.priceSilicaPozzolanPerTonne;
+    const magnetiteRev = 457.38 * p.priceMagnetitePerTonne;
+    const grossAnnualRev = domesticRev + exportRev + pozzolanRev + magnetiteRev;
+
+    return `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- Top Executive KPI Cards -->
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);">
-          <!-- Unit Cost of Production -->
+          <!-- Live Unit Cost -->
           <div class="control-card">
             <span class="control-card-title">Live Unit Cost of Production</span>
             <div style="display: flex; align-items: baseline; gap: var(--space-2); margin-block: var(--space-2);">
-              <span id="econ-unit-cost" style="font-size: 32px; font-weight: 900; color: ${isFavorable ? 'var(--color-emerald)' : 'var(--color-amber)'}; font-family: var(--font-mono);">$${econ.unitCostPerTonne}</span>
-              <span style="font-size: 12px; color: var(--text-tertiary);">/ t PAC</span>
+              <span id="econ-unit-cost" style="font-size: 30px; font-weight: 900; color: ${isFavorable ? 'var(--color-emerald)' : 'var(--color-amber)'}; font-family: var(--font-mono);">
+                ${this.fmtMoney(econ.unitCostPerTonne)}
+              </span>
+              <span style="font-size: 11px; color: var(--text-tertiary);">/ t PAC</span>
             </div>
             <div style="font-size: 11px; color: var(--text-secondary);">
-              Aspen Benchmark: <strong>$${econ.targetUnitCostBenchmark}/t</strong> (${isFavorable ? 'Advantaged' : 'Exceeded'})
+              Aspen Benchmark: <strong>${this.fmtMoney(econ.targetUnitCostBenchmark)}/t</strong> (${isFavorable ? 'Advantaged' : 'Exceeded'})
             </div>
           </div>
 
-          <!-- Gross Margin -->
+          <!-- Net Present Value (NPV) -->
           <div class="control-card">
-            <span class="control-card-title">Gross Profit Margin</span>
+            <span class="control-card-title">Project Net Present Value (NPV)</span>
             <div style="display: flex; align-items: baseline; gap: var(--space-2); margin-block: var(--space-2);">
-              <span id="econ-margin" style="font-size: 32px; font-weight: 900; color: var(--color-cyan); font-family: var(--font-mono);">${econ.grossMarginPercent}%</span>
-              <span style="font-size: 12px; color: var(--text-tertiary); font-family: var(--font-mono);">($${econ.grossMarginHourlyUsd}/h)</span>
+              <span id="econ-npv" style="font-size: 30px; font-weight: 900; color: var(--color-cyan); font-family: var(--font-mono);">
+                ${this.fmtMoneyShort(dcf.npvUsd)}
+              </span>
+              <span style="font-size: 11px; color: var(--text-tertiary);">@ ${(p.discountRate * 100).toFixed(1)}% WACC</span>
             </div>
             <div style="font-size: 11px; color: var(--text-secondary);">
-              Selling Price: <strong>$${econ.sellingPricePerTonne}/t</strong>
+              IRR: <strong id="econ-irr" style="color: #34d399;">${dcf.irrPercent}%</strong> (Hurdle: 15%) &bull; Payback: <strong id="econ-payback">${dcf.paybackYears} yrs</strong>
             </div>
           </div>
 
-          <!-- Total Hourly Operating Cost -->
+          <!-- Gross Profit Margin -->
           <div class="control-card">
-            <span class="control-card-title">Hourly Operating Cost (OPEX)</span>
+            <span class="control-card-title">Hourly Gross Operating Margin</span>
             <div style="display: flex; align-items: baseline; gap: var(--space-2); margin-block: var(--space-2);">
-              <span id="econ-opex" style="font-size: 32px; font-weight: 900; color: #ffffff; font-family: var(--font-mono);">$${econ.totalCostHourlyUsd}</span>
-              <span style="font-size: 12px; color: var(--text-tertiary);">/ hour</span>
+              <span id="econ-gross-margin" style="font-size: 30px; font-weight: 900; color: #ffffff; font-family: var(--font-mono);">
+                ${econ.grossMarginPercent}%
+              </span>
+              <span style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">(${this.fmtMoneyShort(econ.grossMarginHourlyUsd)}/h)</span>
             </div>
             <div style="font-size: 11px; color: var(--text-secondary);">
-              Annualized Basis: <strong>7,920 Operating Hours/yr</strong>
+              Revenue: <strong>${this.fmtMoneyShort(econ.totalRevenueHourlyUsd)}/h</strong> &bull; OPEX: <strong>${this.fmtMoneyShort(econ.totalCostHourlyUsd)}/h</strong>
             </div>
           </div>
 
-          <!-- ESG Carbon Intensity -->
+          <!-- Galamsey Water Remediation Impact -->
           <div class="control-card">
-            <span class="control-card-title">ESG Carbon Intensity (Scope 1+2+3)</span>
+            <span class="control-card-title">GWCL Potable Water Facilitated</span>
             <div style="display: flex; align-items: baseline; gap: var(--space-2); margin-block: var(--space-2);">
-              <span id="econ-carbon" style="font-size: 32px; font-weight: 900; color: #38bdf8; font-family: var(--font-mono);">${econ.carbonIntensityKgCo2PerTonne}</span>
-              <span style="font-size: 12px; color: var(--text-tertiary);">kg CO2/t</span>
+              <span style="font-size: 30px; font-weight: 900; color: #38bdf8; font-family: var(--font-mono);">
+                ${esg ? (esg.galamseyWaterRemediation.annualWaterPurifiedM3 / 1e6).toFixed(0) : '160'}M
+              </span>
+              <span style="font-size: 11px; color: var(--text-tertiary);">m³/yr clean water</span>
             </div>
             <div style="font-size: 11px; color: var(--text-secondary);">
-              Ghana EPA Compliant (Grid factor: 0.42 kg CO2/kWh)
+              Serving <strong>4.2M citizens</strong> &bull; Galamsey Turbidity &gt;1200 &rarr; &lt;3.5 NTU
             </div>
           </div>
         </div>
 
-        <!-- OPEX Breakdown & Tariff Basis -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+        <!-- DYNAMIC DOMAIN PARAMETER CONTROLLER -->
+        ${this.renderParamCategoryContent()}
+
+        <!-- OPEX Breakdown & Revenue Streams -->
+        <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--space-4);">
+          <!-- Cost Center Distribution -->
           <div class="control-card">
-            <span class="control-card-title">Operating Cost Distribution</span>
-            <div style="display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-2);">
+            <span class="control-card-title">Annual Operating Expenditure (OPEX) Disaggregation</span>
+            <div style="display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-3);">
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                  <span>Raw Materials (Bauxite, 32% HCl, Ca(AlO2)2)</span>
-                  <span style="font-weight: 700; font-family: var(--font-mono);">${econ.costBreakdownPercent.rawMaterials}%</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                  <span>Raw Materials (Bauxite ROM, 32% HCl, CaAl₂O₄, CO, Water)</span>
+                  <span style="font-weight: 700; font-family: var(--font-mono); color: var(--color-cyan);">${econ.breakdownPercent.rawMaterials}% &bull; ${this.fmtMoneyShort(econ.breakdownHourly.rawMaterials * this.econEngine.hoursPerYear)}/yr</span>
                 </div>
                 <div style="height: 8px; background: #1e293b; border-radius: var(--radius-full); overflow: hidden;">
-                  <div style="width: ${econ.costBreakdownPercent.rawMaterials}%; height: 100%; background: var(--color-cyan);"></div>
+                  <div style="width: ${econ.breakdownPercent.rawMaterials}%; height: 100%; background: var(--color-cyan);"></div>
                 </div>
               </div>
 
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                  <span>Energy & Utilities (PURC Electricity & LPG Fuel Gas)</span>
-                  <span style="font-weight: 700; font-family: var(--font-mono);">${econ.costBreakdownPercent.energyAndUtilities}%</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                  <span>Fixed Costs (112 Personnel Payroll, Maintenance 6%, Insurance, Overheads)</span>
+                  <span style="font-weight: 700; font-family: var(--font-mono); color: #64748b;">${econ.breakdownPercent.fixedCosts}% &bull; ${this.fmtMoneyShort(econ.breakdownHourly.fixedCosts * this.econEngine.hoursPerYear)}/yr</span>
                 </div>
                 <div style="height: 8px; background: #1e293b; border-radius: var(--radius-full); overflow: hidden;">
-                  <div style="width: ${econ.costBreakdownPercent.energyAndUtilities}%; height: 100%; background: var(--color-amber);"></div>
+                  <div style="width: ${econ.breakdownPercent.fixedCosts}%; height: 100%; background: #64748b;"></div>
                 </div>
               </div>
 
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                  <span>Fixed Costs (Labour, Maintenance, Depreciation & Insurance)</span>
-                  <span style="font-weight: 700; font-family: var(--font-mono);">${econ.costBreakdownPercent.fixedOverheads}%</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                  <span>Logistics & Transport (Takoradi Haulage, ISO Tankers, Distribution)</span>
+                  <span style="font-weight: 700; font-family: var(--font-mono); color: #e2e8f0;">${econ.breakdownPercent.logistics}% &bull; ${this.fmtMoneyShort(econ.breakdownHourly.logistics * this.econEngine.hoursPerYear)}/yr</span>
                 </div>
                 <div style="height: 8px; background: #1e293b; border-radius: var(--radius-full); overflow: hidden;">
-                  <div style="width: ${econ.costBreakdownPercent.fixedOverheads}%; height: 100%; background: #64748b;"></div>
+                  <div style="width: ${econ.breakdownPercent.logistics}%; height: 100%; background: #94a3b8;"></div>
+                </div>
+              </div>
+
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 4px;">
+                  <span>Energy & Utilities (PURC Electricity MV SLT & Cooling Water)</span>
+                  <span style="font-weight: 700; font-family: var(--font-mono); color: var(--color-amber);">${econ.breakdownPercent.utilities}% &bull; ${this.fmtMoneyShort(econ.breakdownHourly.utilities * this.econEngine.hoursPerYear)}/yr</span>
+                </div>
+                <div style="height: 8px; background: #1e293b; border-radius: var(--radius-full); overflow: hidden;">
+                  <div style="width: ${econ.breakdownPercent.utilities}%; height: 100%; background: var(--color-amber);"></div>
                 </div>
               </div>
             </div>
           </div>
 
+          <!-- Revenue & By-Product Composition -->
           <div class="control-card">
-            <span class="control-card-title">Ghana PURC 2026 Commercial Tariff Basis</span>
+            <span class="control-card-title">Annual Revenue & By-Product Valuation</span>
             <table style="width: 100%; font-size: 11px; margin-top: var(--space-2); border-collapse: collapse;">
               <tbody>
-                <tr style="border-bottom: 1px solid #1e293b; height: 26px;">
-                  <td style="color: var(--text-secondary);">Raw Bauxite Ore (Awaso Mine Gate)</td>
-                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">$45.00 / metric tonne</td>
+                <tr style="border-bottom: 1px solid #1e293b; height: 28px;">
+                  <td style="color: var(--text-secondary);">Domestic Offtake: Ghana Water Company (GWCL)</td>
+                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #34d399;">
+                    ${p.domesticVolumeTpa.toLocaleString()} TPA &bull; ${this.fmtMoney(domesticRev)}
+                  </td>
                 </tr>
-                <tr style="border-bottom: 1px solid #1e293b; height: 26px;">
-                  <td style="color: var(--text-secondary);">Hydrochloric Acid (32% Bulk Tanker)</td>
-                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">$280.00 / metric tonne</td>
+                <tr style="border-bottom: 1px solid #1e293b; height: 28px;">
+                  <td style="color: var(--text-secondary);">ECOWAS Regional Export (20% CET Shield)</td>
+                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: var(--color-cyan);">
+                    ${p.exportVolumeTpa.toLocaleString()} TPA &bull; ${this.fmtMoney(exportRev)}
+                  </td>
                 </tr>
-                <tr style="border-bottom: 1px solid #1e293b; height: 26px;">
-                  <td style="color: var(--text-secondary);">Calcium Aluminate Powder Ca(AlO2)2</td>
-                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">$320.00 / metric tonne</td>
+                <tr style="border-bottom: 1px solid #1e293b; height: 28px;">
+                  <td style="color: var(--text-secondary);">Circular By-Product: Silica Pozzolan Filter Cake</td>
+                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #f59e0b;">
+                    2,062 TPA &bull; ${this.fmtMoney(pozzolanRev)}
+                  </td>
                 </tr>
-                <tr style="border-bottom: 1px solid #1e293b; height: 26px;">
-                  <td style="color: var(--text-secondary);">PURC Medium Voltage Industrial Tariff</td>
-                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">$0.145 / kWh</td>
+                <tr style="border-bottom: 1px solid #1e293b; height: 28px;">
+                  <td style="color: var(--text-secondary);">Circular By-Product: Magnetite Fe₃O₄ Reject</td>
+                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700; color: #f59e0b;">
+                    457 TPA &bull; ${this.fmtMoney(magnetiteRev)}
+                  </td>
                 </tr>
-                <tr style="height: 26px;">
-                  <td style="color: var(--text-secondary);">Industrial LPG Bulk Delivery</td>
-                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 700;">$1.15 / kg</td>
+                <tr style="height: 32px; background: rgba(56, 189, 248, 0.05);">
+                  <td style="font-weight: 800; color: #ffffff;">Gross Annual Plant Revenue (Live Model)</td>
+                  <td style="text-align: right; font-family: var(--font-mono); font-weight: 900; font-size: 13px; color: var(--color-cyan);">
+                    ${this.fmtMoney(grossAnnualRev)}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -1080,6 +1551,552 @@ export class AnalyticsView {
       </div>
     `;
   }
+
+  // 2. 20-YEAR DISCOUNTED CASH FLOW MATRIX & WATERFALL
+  renderEconDcf(dcf) {
+    return `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- DCF Header & Export Button -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">20-Year Discounted Cash Flow (DCF) & Investment Appraisal</span>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+              Grounded in Table 10-21 of the Plant Design Report & Sheet 'CashFlow' of PAC_Economics_Final.xlsx.
+            </p>
+          </div>
+          <button id="btn-export-dcf-csv" class="btn-control btn-primary" style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export 20-Year DCF Matrix (CSV)
+          </button>
+        </div>
+
+        <!-- DCF Metrics Ribbon -->
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-3);">
+          <div class="control-card" style="padding: var(--space-3); text-align: center;">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Net Present Value (NPV)</div>
+            <div style="font-size: 20px; font-weight: 900; color: var(--color-cyan); font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(dcf.npvUsd)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Discount Rate: 8.0% WACC</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3); text-align: center;">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Internal Rate of Return (IRR)</div>
+            <div style="font-size: 20px; font-weight: 900; color: #34d399; font-family: var(--font-mono); margin-top: 2px;">${dcf.irrPercent}%</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Exceeds 15.0% hurdle</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3); text-align: center;">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Simple Payback Period</div>
+            <div style="font-size: 20px; font-weight: 900; color: #ffffff; font-family: var(--font-mono); margin-top: 2px;">${dcf.paybackYears} Years</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Year 6 Cash Breakeven</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3); text-align: center;">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Total Capital Investment</div>
+            <div style="font-size: 20px; font-weight: 900; color: #ffffff; font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(dcf.tciUsd)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Grass-roots + WC + EPC</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3); text-align: center;">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Rate of Return (ROR)</div>
+            <div style="font-size: 20px; font-weight: 900; color: #f59e0b; font-family: var(--font-mono); margin-top: 2px;">${dcf.rateOfReturnPercent}%</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Avg NOPAT / TCI</div>
+          </div>
+        </div>
+
+        <!-- SVG Waterfall Chart & Cumulative Cash Flow Breakeven Curve -->
+        <div class="waterfall-card">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">Cumulative Project Cash Flow & Breakeven Trajectory (Year -2 to Year 20)</span>
+            <span style="font-size: 10px; color: var(--text-tertiary);">Values in Millions (${this.econCurrency})</span>
+          </div>
+          ${this.generateDcfWaterfallSvg(dcf.yearlyRows, dcf.cumulativeCashFlowSeries)}
+        </div>
+
+        <!-- 20-Year Financial Matrix Table -->
+        <div class="financial-table-container">
+          <table class="financial-table">
+            <thead>
+              <tr>
+                <th>Yr</th>
+                <th>Util</th>
+                <th style="text-align: right;">Gross Revenue</th>
+                <th style="text-align: right;">Variable OPEX</th>
+                <th style="text-align: right;">Fixed OPEX</th>
+                <th style="text-align: right;">EBITDA</th>
+                <th style="text-align: right;">Depr Tax Shield</th>
+                <th style="text-align: right;">CIT Tax</th>
+                <th style="text-align: right;">NOPAT</th>
+                <th style="text-align: right;">Net Cash Flow</th>
+                <th style="text-align: right;">Cumulative CF</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dcf.yearlyRows.map(r => `
+                <tr>
+                  <td style="font-weight: 700; color: var(--color-cyan); font-family: var(--font-mono);">Yr ${r.year}</td>
+                  <td style="font-family: var(--font-mono); color: var(--text-tertiary);">${r.utilizationPercent}%</td>
+                  <td class="numeric">${this.fmtMoneyShort(r.revenue)}</td>
+                  <td class="numeric">${this.fmtMoneyShort(r.variableOpex)}</td>
+                  <td class="numeric">${this.fmtMoneyShort(r.fixedOpex)}</td>
+                  <td class="numeric highlight">${this.fmtMoneyShort(r.ebitda)}</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">${this.fmtMoneyShort(r.depreciation)}</td>
+                  <td class="numeric" style="color: #fb7185;">${this.fmtMoneyShort(r.tax)}</td>
+                  <td class="numeric">${this.fmtMoneyShort(r.nopat)}</td>
+                  <td class="numeric ${r.cashFlow >= 0 ? 'positive' : 'negative'}">${this.fmtMoneyShort(r.cashFlow)}</td>
+                  <td class="numeric ${r.cumulativeCashFlow >= 0 ? 'positive' : 'negative'}" style="font-weight: 700;">
+                    ${this.fmtMoneyShort(r.cumulativeCashFlow)}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  generateDcfWaterfallSvg(yearlyRows, cumSeries) {
+    const w = 920;
+    const h = 200;
+    const padL = 40;
+    const padR = 20;
+    const padT = 20;
+    const padB = 30;
+
+    const minVal = -21.0; // Min cumulative is ~-19.95M
+    const maxVal = 70.0;  // Max cumulative is ~68.11M
+    const valRange = maxVal - minVal;
+
+    const getY = (valM) => {
+      return h - padB - ((valM - minVal) / valRange) * (h - padT - padB);
+    };
+
+    const zeroY = getY(0);
+
+    // Points for cumulative curve
+    // cumSeries has 23 entries (Yr -2, -1, 0, 1...20)
+    const points = cumSeries.map((cVal, idx) => {
+      const x = padL + (idx / (cumSeries.length - 1)) * (w - padL - padR);
+      const valM = cVal / 1e6;
+      const y = getY(valM);
+      return { x, y, valM, idx };
+    });
+
+    const polylinePts = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+    return `
+      <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: 200px; overflow: visible;">
+        <!-- Zero baseline -->
+        <line x1="${padL}" y1="${zeroY}" x2="${w - padR}" y2="${zeroY}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-dasharray="4,4" />
+        <text x="${padL - 6}" y="${zeroY + 3}" fill="#94a3b8" font-size="9" text-anchor="end" font-family="var(--font-mono)">$0M</text>
+        <text x="${padL - 6}" y="${getY(50) + 3}" fill="#94a3b8" font-size="9" text-anchor="end" font-family="var(--font-mono)">+$50M</text>
+        <text x="${padL - 6}" y="${getY(-20) + 3}" fill="#94a3b8" font-size="9" text-anchor="end" font-family="var(--font-mono)">-$20M</text>
+
+        <!-- Payback Area shading (green above zero) -->
+        <polygon fill="rgba(16, 185, 129, 0.08)" points="${points.filter(p => p.valM >= 0).map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')} ${points[points.length - 1].x},${zeroY} ${points.find(p => p.valM >= 0).x},${zeroY}" />
+
+        <!-- Cumulative Cash Flow Polyline -->
+        <polyline fill="none" stroke="var(--color-cyan)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${polylinePts}" />
+
+        <!-- Nodes -->
+        ${points.map((p, i) => {
+          const isBreakeven = (i === 8); // Year 6
+          const fill = isBreakeven ? "#34d399" : (p.valM >= 0 ? "#38bdf8" : "#fb7185");
+          const r = isBreakeven ? 5 : 2.5;
+          return `
+            <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}" stroke="#080c14" stroke-width="1.5" />
+            ${isBreakeven ? `<text x="${p.x.toFixed(1)}" y="${p.y - 10}" fill="#34d399" font-size="9.5" font-weight="700" text-anchor="middle" font-family="var(--font-mono)">Payback Yr 6 (+${p.valM.toFixed(1)}M)</text>` : ''}
+          `;
+        }).join('')}
+
+        <!-- X-Axis Labels -->
+        <text x="${points[0].x}" y="${h - 8}" fill="#64748b" font-size="8.5" text-anchor="middle" font-family="var(--font-mono)">Yr -2</text>
+        <text x="${points[2].x}" y="${h - 8}" fill="#64748b" font-size="8.5" text-anchor="middle" font-family="var(--font-mono)">Yr 0</text>
+        <text x="${points[7].x}" y="${h - 8}" fill="#64748b" font-size="8.5" text-anchor="middle" font-family="var(--font-mono)">Yr 5</text>
+        <text x="${points[12].x}" y="${h - 8}" fill="#64748b" font-size="8.5" text-anchor="middle" font-family="var(--font-mono)">Yr 10</text>
+        <text x="${points[17].x}" y="${h - 8}" fill="#64748b" font-size="8.5" text-anchor="middle" font-family="var(--font-mono)">Yr 15</text>
+        <text x="${points[22].x}" y="${h - 8}" fill="#64748b" font-size="8.5" text-anchor="middle" font-family="var(--font-mono)">Yr 20</text>
+      </svg>
+    `;
+  }
+
+  // 3. TURTON CAPEX & BARE MODULE EQUIPMENT REGISTRY
+  renderEconCapex() {
+    const capexList = this.econEngine.getEquipmentCapexRegistry();
+
+    return `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- CAPEX Header & Actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">Turton et al. (2018) Bare Module Capital Cost Registry</span>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+              CEPCI Escalation 2001 (397.0) &rarr; 2026 (678.4, ratio 1.709) &bull; Ghana Location Factor: 1.35x.
+            </p>
+          </div>
+          <button id="btn-export-capex-csv" class="btn-control btn-primary" style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CAPEX Registry (CSV)
+          </button>
+        </div>
+
+        <!-- Grass-Roots Capital Breakdown Cards -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Bare Module Cost (USGC)</div>
+            <div style="font-size: 18px; font-weight: 800; color: #ffffff; font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(this.econEngine.bareModuleUsgcTotal)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Direct & Indirect Equipment</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Ghana Fixed Capital (FCI)</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--color-cyan); font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(this.econEngine.fciUsd)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">${this.econEngine.params.ghanaLocationFactor.toFixed(2)}x Ghana Location Adj.</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Grass-Roots Infrastructure</div>
+            <div style="font-size: 18px; font-weight: 800; color: #ffffff; font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(this.econEngine.grassRootsInvUsd)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Civil 5% + Aux 8% + Util 10%</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Total Capital Investment (TCI)</div>
+            <div style="font-size: 18px; font-weight: 900; color: #34d399; font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(this.econEngine.totalCapitalInvestmentUsd)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">Incl. EPC 10% + Contingency + WC</div>
+          </div>
+        </div>
+
+        <!-- Master Equipment Table -->
+        <div class="financial-table-container" style="max-height: 480px;">
+          <table class="financial-table">
+            <thead>
+              <tr>
+                <th>Tag</th>
+                <th>Equipment Name</th>
+                <th>Area</th>
+                <th>Design Capacity / Size</th>
+                <th>Materials of Construction</th>
+                <th style="text-align: right;">Bare Module Factor (F_BM)</th>
+                <th style="text-align: right;">2001 Base (C_BM)</th>
+                <th style="text-align: right;">2026 Bare Module (USD)</th>
+                <th style="text-align: right;">Ghana Cost (${this.econCurrency})</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${capexList.map(eq => `
+                <tr>
+                  <td style="font-family: var(--font-mono); font-weight: 800; color: var(--color-cyan);">${eq.tag}</td>
+                  <td style="font-weight: 600; color: #ffffff;">${eq.name}</td>
+                  <td>Area ${eq.area}</td>
+                  <td style="font-family: var(--font-mono); color: var(--text-tertiary);">${eq.size}</td>
+                  <td style="color: #cbd5e1;">${eq.mat}</td>
+                  <td class="numeric">${eq.fbm.toFixed(2)}</td>
+                  <td class="numeric">${this.fmtMoneyShort(eq.cbm2001)}</td>
+                  <td class="numeric highlight">${this.fmtMoneyShort(eq.cbm2026)}</td>
+                  <td class="numeric" style="font-weight: 700; color: #34d399;">${this.fmtMoneyShort(eq.cbm2026 * this.econEngine.params.ghanaLocationFactor)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. LABOUR FORCE & LOCAL CONTENT
+  renderEconLabour() {
+    const labour = this.econEngine.getLabourStructure();
+
+    return `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- Labour Header & Export -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">Industrial Labour Force & Ghana Local Content (L.I. 2204) Schedule</span>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+              Continuous 24/7 four-crew rotating shift roster & day administration complement.
+            </p>
+          </div>
+          <button id="btn-export-labour-csv" class="btn-control btn-primary" style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Labour Schedule (CSV)
+          </button>
+        </div>
+
+        <!-- Labour KPI Cards -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3);">
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Total Plant Complement</div>
+            <div style="font-size: 26px; font-weight: 900; color: #ffffff; font-family: var(--font-mono); margin-top: 2px;">${labour.totalHeadcount}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">112 Direct Industrial Jobs</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">24/7 Shift Operations</div>
+            <div style="font-size: 26px; font-weight: 900; color: var(--color-cyan); font-family: var(--font-mono); margin-top: 2px;">${labour.shiftHeadcount}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">4 Crews x 22 Specialists</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Annual Payroll Commitment</div>
+            <div style="font-size: 26px; font-weight: 900; color: #34d399; font-family: var(--font-mono); margin-top: 2px;">${this.fmtMoneyShort(labour.grandTotalPayrollUsd)}</div>
+            <div style="font-size: 10px; color: var(--text-secondary);">VALCO/Mining Benchmark</div>
+          </div>
+          <div class="control-card" style="padding: var(--space-3);">
+            <div style="font-size: 10px; color: var(--text-tertiary); text-transform: uppercase;">Local Content Quota (L.I. 2204)</div>
+            <div style="font-size: 26px; font-weight: 900; color: #f59e0b; font-family: var(--font-mono); margin-top: 2px;">${labour.localContentPercentage}%</div>
+            <div style="font-size: 10px; color: var(--text-secondary);"><span class="esg-badge compliant">COMPLIANT (&gt;90%)</span></div>
+          </div>
+        </div>
+
+        <!-- Two Columns: Shift Roles & Day Roles -->
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--space-4);">
+          <!-- Shift Roles -->
+          <div class="control-card">
+            <span class="control-card-title">24/7 Shift Operations Crew (4 Rotating Crews, 88 Personnel)</span>
+            <table class="financial-table" style="margin-top: var(--space-2);">
+              <thead>
+                <tr>
+                  <th>Job Title / Role</th>
+                  <th style="text-align: right;">Per Shift</th>
+                  <th style="text-align: right;">Crews</th>
+                  <th style="text-align: right;">Total Staff</th>
+                  <th style="text-align: right;">Annual Salary</th>
+                  <th style="text-align: right;">Total Payroll</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${labour.shiftRoles.map(r => `
+                  <tr>
+                    <td style="font-weight: 600; color: #ffffff;">${r.role}</td>
+                    <td class="numeric">${r.perShift}</td>
+                    <td class="numeric">${r.crews}</td>
+                    <td class="numeric" style="color: var(--color-cyan); font-weight: 700;">${r.headcount}</td>
+                    <td class="numeric">${this.fmtMoney(r.annualSalaryUsd)}</td>
+                    <td class="numeric highlight">${this.fmtMoney(r.totalAnnualUsd)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Day Admin Roles -->
+          <div class="control-card">
+            <span class="control-card-title">Day Shift, Engineering & Management (24 Personnel)</span>
+            <table class="financial-table" style="margin-top: var(--space-2);">
+              <thead>
+                <tr>
+                  <th>Department / Function</th>
+                  <th style="text-align: right;">Headcount</th>
+                  <th style="text-align: right;">Annual Salary</th>
+                  <th style="text-align: right;">Total Payroll</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${labour.adminRoles.map(r => `
+                  <tr>
+                    <td style="font-weight: 600; color: #ffffff;">${r.role}</td>
+                    <td class="numeric" style="color: var(--color-cyan); font-weight: 700;">${r.headcount}</td>
+                    <td class="numeric">${this.fmtMoney(r.annualSalaryUsd)}</td>
+                    <td class="numeric highlight">${this.fmtMoney(r.totalAnnualUsd)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 5. GHANA EPA ACT 490 & GWCL WATER IMPACT
+  renderEconEsg(esg) {
+    if (!esg) {
+      return `<div style="padding: var(--space-4); color: var(--text-secondary);">Initializing ESG Telemetry...</div>`;
+    }
+
+    return `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- Header & Export -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <span style="font-size: 14px; font-weight: 800; color: var(--text-primary);">Ghana Environmental Protection Authority (EPA Act 490 / L.I. 1652) Compliance & Water Impact</span>
+            <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+              Air Quality CEMS, Zero Liquid Discharge (ZLD) Effluent Standards, GWCL Water Security & Circular Economy.
+            </p>
+          </div>
+          <button id="btn-export-esg-csv" class="btn-control btn-primary" style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Ghana EPA ESG Report (CSV)
+          </button>
+        </div>
+
+        <!-- EPA Compliance Status Strip -->
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: var(--space-4); display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 13.5px; font-weight: 700; color: #34d399; display: flex; align-items: center; gap: var(--space-2);">
+              <span>Ghana EPA Act 490 Environmental Performance Certificate</span>
+              <span class="esg-badge compliant">100% COMPLIANT</span>
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px;">
+              CEMS stack emissions and ETP neutral effluent operate strictly within statutory thresholds set by the Environmental Protection Agency of Ghana.
+            </div>
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary);">Permit Ref: EPA/EIA/WN/2026/089</span>
+        </div>
+
+        <!-- 2 Columns: Air CEMS Compliance & Effluent ZLD Compliance -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <!-- Air Emissions -->
+          <div class="control-card">
+            <span class="control-card-title">CEMS Atmospheric Stack Air Quality (ST-301)</span>
+            <table class="financial-table" style="margin-top: var(--space-2);">
+              <thead>
+                <tr>
+                  <th>Pollutant Parameter</th>
+                  <th style="text-align: right;">Continuous PV</th>
+                  <th style="text-align: right;">Ghana EPA Limit</th>
+                  <th>Regulatory Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Particulate Matter (PM₁₀)</td>
+                  <td class="numeric">${esg.airCompliance.particulates.value} mg/Nm³</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">&le; 50.0 mg/Nm³</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Sulfur Dioxide (SO₂)</td>
+                  <td class="numeric">${esg.airCompliance.so2.value} mg/Nm³</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">&le; 50.0 mg/Nm³</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Hydrogen Chloride (HCl gas)</td>
+                  <td class="numeric">${esg.airCompliance.hcl.value} mg/Nm³</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">&le; 20.0 mg/Nm³</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Carbon Monoxide (CO)</td>
+                  <td class="numeric">${esg.airCompliance.co.value} mg/Nm³</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">&le; 150.0 mg/Nm³</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Effluent Standards -->
+          <div class="control-card">
+            <span class="control-card-title">ETP Industrial Neutralization Effluent (L.I. 1652)</span>
+            <table class="financial-table" style="margin-top: var(--space-2);">
+              <thead>
+                <tr>
+                  <th>Effluent Parameter</th>
+                  <th style="text-align: right;">Discharge PV</th>
+                  <th style="text-align: right;">Ghana EPA Standard</th>
+                  <th>Regulatory Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">pH Reaction Envelope</td>
+                  <td class="numeric">${esg.effluentCompliance.ph.value}</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">6.5 – 8.5</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Total Suspended Solids (TSS)</td>
+                  <td class="numeric">${esg.effluentCompliance.tss.value} mg/L</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">&le; 50.0 mg/L</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Residual Soluble Aluminium (Al)</td>
+                  <td class="numeric">${esg.effluentCompliance.al.value} mg/L</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">&le; 5.0 mg/L</td>
+                  <td><span class="esg-badge compliant">COMPLIANT</span></td>
+                </tr>
+                <tr>
+                  <td style="color: #ffffff; font-weight: 600;">Process Slurry Recycling</td>
+                  <td class="numeric">94.2% Recycle</td>
+                  <td class="numeric" style="color: var(--text-tertiary);">Zero Liquid Discharge</td>
+                  <td><span class="esg-badge compliant">OPTIMAL</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3 Columns: Galamsey Water Impact, Forex Substitution, and Circular Economy -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);">
+          <!-- Galamsey Water Remediation -->
+          <div class="control-card">
+            <span class="control-card-title">Galamsey River Remediation (GWCL)</span>
+            <div style="margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); font-size: 11px;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Potable Water Produced:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: var(--color-cyan);">${(esg.galamseyWaterRemediation.annualWaterPurifiedM3 / 1e6).toFixed(0)} Million m³/yr</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Population Benefiting:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #34d399;">~4,200,000 Ghanaians</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Raw Water Turbidity:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #fb7185;">1,200 – 4,500 NTU</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-bottom: 2px;">
+                <span style="color: var(--text-secondary);">Treated Potable Turbidity:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #34d399;">&lt; 3.5 NTU (WHO/GS 175-1)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bank of Ghana Forex Savings -->
+          <div class="control-card">
+            <span class="control-card-title">Bank of Ghana Forex Substitution</span>
+            <div style="margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); font-size: 11px;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Displaced Import Volume:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #ffffff;">4,000 TPA PAC</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Annual Forex Saved:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #34d399;">${this.fmtMoney(esg.forexSubstitution.forexSavedAnnualUsd)} / yr</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">20-Yr Cumulative Forex:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: var(--color-cyan);">${this.fmtMoneyShort(esg.forexSubstitution.cumulative20YrForexUsd)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-bottom: 2px;">
+                <span style="color: var(--text-secondary);">Source Replaced:</span>
+                <span style="color: var(--text-tertiary);">Imported Chinese / Indian Alum</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Circular Economy -->
+          <div class="control-card">
+            <span class="control-card-title">Circular Economy & Waste Diversion</span>
+            <div style="margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); font-size: 11px;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Silica Pozzolan Filter Cake:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #f59e0b;">2,062 t/yr (Cement clinker)</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Magnetite Fe₃O₄ Reject:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #f59e0b;">457 t/yr (Dense media ore)</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">Total Waste Diverted:</span>
+                <span style="font-weight: 700; font-family: var(--font-mono); color: #34d399;">2,519.5 t/yr</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-bottom: 2px;">
+                <span style="color: var(--text-secondary);">Industrial Landfill Rate:</span>
+                <span style="font-weight: 800; color: #34d399;">0.0% (Zero Landfill)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
 
   // =========================================================================
   // 4. HEAT & MATERIAL BALANCE (H&MB) TABLE
@@ -1250,6 +2267,204 @@ export class AnalyticsView {
       btnExportHazop.addEventListener("click", () => {
         const csv = this.hazopSim.exportHazopCsv();
         this.downloadCsv("PAC_Plant_IEC61882_HAZOP_Worksheet.csv", csv);
+      });
+    }
+
+    // Industrial Economics Subtab Navigation
+    this.container.querySelectorAll("[data-econ-subtab]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.econActiveSubTab = btn.getAttribute("data-econ-subtab");
+        this.render();
+      });
+    });
+
+    // Currency Switcher
+    this.container.querySelectorAll("[data-currency]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.econCurrency = btn.getAttribute("data-currency");
+        this.render();
+      });
+    });
+
+    // Domain Category Tabs
+    this.container.querySelectorAll("[data-param-cat]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        this.econParamCategory = btn.getAttribute("data-param-cat");
+        this.render();
+      });
+    });
+
+    // Reset Parameters Button
+    const btnResetEcon = this.container.querySelector("#btn-reset-econ-sensitivity");
+    if (btnResetEcon) {
+      btnResetEcon.addEventListener("click", () => {
+        this.econEngine.resetParams();
+        this.render();
+      });
+    }
+
+    // Two-Way Parameter Input Synchronization (Sliders & Numeric Boxes)
+    const handleParamInput = (inputEl, isFinalChange = false) => {
+      const key = inputEl.getAttribute("data-param-key");
+      const mult = parseFloat(inputEl.getAttribute("data-multiplier")) || 1;
+      const rawVal = parseFloat(inputEl.value);
+      if (isNaN(rawVal)) return;
+
+      const engineVal = rawVal / mult;
+      this.econEngine.setParam(key, engineVal);
+
+      // Sync counterpart control (slider <-> num box)
+      const counterpart = this.container.querySelector(
+        inputEl.classList.contains("econ-num-input")
+          ? `.econ-range-slider[data-param-key="${key}"]`
+          : `.econ-num-input[data-param-key="${key}"]`
+      );
+      if (counterpart && Math.abs(parseFloat(counterpart.value) - parseFloat(inputEl.value)) > 1e-4) {
+        counterpart.value = inputEl.value;
+      }
+
+      // Update card modified class & drift badge
+      const card = this.container.querySelector(`#econ-card-${key}`);
+      const defaultRaw = this.econEngine.defaultParams[key];
+      const isModified = Math.abs(engineVal - defaultRaw) > 1e-5;
+      if (card) {
+        if (isModified) card.classList.add("modified");
+        else card.classList.remove("modified");
+      }
+
+      // Re-calculate live metrics
+      const s101 = this.engine.getStream("101");
+      const s201 = this.engine.getStream("201");
+      const s710 = this.engine.getStream("710");
+      const hclKgH = (s101 ? s101.massFlowKgH : 755.99) * (this.engine.instruments["FFIC-601"] ? this.engine.instruments["FFIC-601"].pv : 3.02);
+      const caAluminate = (this.engine.equipment["R-701"] && this.engine.equipment["R-701"].pip) ? this.engine.equipment["R-701"].pip.caDosingRateKgH : 650.0;
+      const bauxiteKgH = s101 ? s101.massFlowKgH : 755.99;
+      const fuelGasKgH = s201 ? s201.massFlowKgH : 329.25;
+      const pacKgH = s710 ? s710.massFlowKgH : 2045.0;
+
+      const liveEcon = this.econEngine.calculateLiveEconomics({
+        bauxiteFeedKgH: bauxiteKgH,
+        hclFeedKgH: hclKgH,
+        caAluminateKgH: caAluminate,
+        fuelGasKgH: fuelGasKgH,
+        pacProductKgH: pacKgH,
+        powerKw: 150.0
+      });
+
+      const dcf = this.econEngine.calculate20YearDcf();
+
+      // Update Live Unit Cost card
+      const unitCostEl = this.container.querySelector("#econ-unit-cost");
+      if (unitCostEl) {
+        unitCostEl.textContent = this.fmtMoney(liveEcon.unitCostPerTonne);
+        unitCostEl.style.color = liveEcon.unitCostPerTonne <= liveEcon.targetUnitCostBenchmark ? 'var(--color-emerald)' : 'var(--color-amber)';
+      }
+
+      // Update Header KPI ribbon
+      const headerUnitCostEl = document.getElementById("kpi-unit-cost");
+      if (headerUnitCostEl) {
+        headerUnitCostEl.textContent = `$${liveEcon.unitCostPerTonne}`;
+        headerUnitCostEl.style.color = liveEcon.unitCostPerTonne <= liveEcon.targetUnitCostBenchmark ? 'var(--color-emerald)' : 'var(--color-amber)';
+      }
+
+      // Update NPV card
+      const npvEl = this.container.querySelector("#econ-npv");
+      if (npvEl) {
+        npvEl.textContent = this.fmtMoneyShort(dcf.npvUsd);
+      }
+
+      // Update Gross Margin card
+      const marginEl = this.container.querySelector("#econ-gross-margin");
+      if (marginEl) {
+        marginEl.textContent = `${liveEcon.grossMarginPercent}%`;
+      }
+
+      const irrEl = this.container.querySelector("#econ-irr");
+      if (irrEl) {
+        irrEl.textContent = `${dcf.irrPercent}%`;
+      }
+
+      const paybackEl = this.container.querySelector("#econ-payback");
+      if (paybackEl) {
+        paybackEl.textContent = `${dcf.paybackYears} yrs`;
+      }
+
+      // If user released the slider (change event) or committed number box, re-render to update tables/charts
+      if (isFinalChange) {
+        this.render();
+      }
+    };
+
+    this.container.querySelectorAll(".econ-range-slider[data-param-key]").forEach(slider => {
+      slider.addEventListener("input", (e) => handleParamInput(e.target, false));
+      slider.addEventListener("change", (e) => handleParamInput(e.target, true));
+    });
+
+    this.container.querySelectorAll(".econ-num-input[data-param-key]").forEach(numInput => {
+      numInput.addEventListener("input", (e) => handleParamInput(e.target, false));
+      numInput.addEventListener("change", (e) => handleParamInput(e.target, true));
+    });
+
+    // CSV Exports for DCF, CAPEX, Labour, ESG
+    const btnExportDcf = this.container.querySelector("#btn-export-dcf-csv");
+    if (btnExportDcf) {
+      btnExportDcf.addEventListener("click", () => {
+        const dcf = this.econEngine.calculate20YearDcf();
+        let csv = "Year,Utilization_Pct,Gross_Revenue_USD,Variable_OPEX_USD,Fixed_OPEX_USD,Total_OPEX_USD,EBITDA_USD,Depreciation_USD,EBIT_USD,Tax_USD,NOPAT_USD,Cash_Flow_USD,Cumulative_CF_USD,Discounted_CF_USD\n";
+        dcf.yearlyRows.forEach(r => {
+          csv += `${r.year},${r.utilizationPercent},${r.revenue},${r.variableOpex},${r.fixedOpex},${r.totalOpex},${r.ebitda},${r.depreciation},${r.ebit},${r.tax},${r.nopat},${r.cashFlow},${r.cumulativeCashFlow},${r.discountedCashFlow}\n`;
+        });
+        this.downloadCsv("PAC_Plant_20Year_DCF_CashFlow.csv", csv);
+      });
+    }
+
+    const btnExportCapex = this.container.querySelector("#btn-export-capex-csv");
+    if (btnExportCapex) {
+      btnExportCapex.addEventListener("click", () => {
+        const capex = this.econEngine.getEquipmentCapexRegistry();
+        const locFactor = this.econEngine.params.ghanaLocationFactor;
+        let csv = `Tag,Equipment_Name,Area,Size_A,Materials_Of_Construction,F_BM,Base_Cost_2001_USD,C_BM_2026_USD,C_BM_Ghana_${locFactor.toFixed(2)}x_USD\n`;
+        capex.forEach(eq => {
+          csv += `"${eq.tag}","${eq.name}",${eq.area},"${eq.size}","${eq.mat}",${eq.fbm},${eq.cbm2001},${eq.cbm2026},${(eq.cbm2026 * locFactor).toFixed(2)}\n`;
+        });
+        this.downloadCsv("PAC_Plant_Turton_CAPEX_Equipment_Registry.csv", csv);
+      });
+    }
+
+    const btnExportLabour = this.container.querySelector("#btn-export-labour-csv");
+    if (btnExportLabour) {
+      btnExportLabour.addEventListener("click", () => {
+        const labour = this.econEngine.getLabourStructure();
+        let csv = "Category,Role,Staff_Per_Shift,Crews,Headcount,Annual_Salary_USD,Total_Annual_Payroll_USD\n";
+        labour.shiftRoles.forEach(r => {
+          csv += `Shift,"${r.role}",${r.perShift},${r.crews},${r.headcount},${r.annualSalaryUsd},${r.totalAnnualUsd}\n`;
+        });
+        labour.adminRoles.forEach(r => {
+          csv += `Admin/Engineering,"${r.role}",-,1,${r.headcount},${r.annualSalaryUsd},${r.totalAnnualUsd}\n`;
+        });
+        this.downloadCsv("PAC_Plant_Workforce_Labour_Schedule.csv", csv);
+      });
+    }
+
+    const btnExportEsg = this.container.querySelector("#btn-export-esg-csv");
+    if (btnExportEsg) {
+      btnExportEsg.addEventListener("click", () => {
+        const s710 = this.engine.getStream("710");
+        const pacKgH = s710 ? s710.massFlowKgH : 2045.0;
+        const esg = this.esgEngine.calculateEsgMetrics({ pacProductKgH: pacKgH });
+        let csv = "Category,Parameter,Value,Unit,Ghana_EPA_Limit,Compliance_Status\n";
+        csv += `Air_Stack_CEMS,Particulates_PM10,${esg.airCompliance.particulates.value},mg/Nm3,<= 50.0,${esg.airCompliance.particulates.status}\n`;
+        csv += `Air_Stack_CEMS,Sulfur_Dioxide_SO2,${esg.airCompliance.so2.value},mg/Nm3,<= 50.0,${esg.airCompliance.so2.status}\n`;
+        csv += `Air_Stack_CEMS,Hydrogen_Chloride_HCl,${esg.airCompliance.hcl.value},mg/Nm3,<= 20.0,${esg.airCompliance.hcl.status}\n`;
+        csv += `Air_Stack_CEMS,Carbon_Monoxide_CO,${esg.airCompliance.co.value},mg/Nm3,<= 150.0,${esg.airCompliance.co.status}\n`;
+        csv += `Effluent_ETP,pH,${esg.effluentCompliance.ph.value},-,6.5 - 8.5,${esg.effluentCompliance.ph.status}\n`;
+        csv += `Effluent_ETP,TSS,${esg.effluentCompliance.tss.value},mg/L,<= 50.0,${esg.effluentCompliance.tss.status}\n`;
+        csv += `Effluent_ETP,Residual_Aluminium,${esg.effluentCompliance.al.value},mg/L,<= 5.0,${esg.effluentCompliance.al.status}\n`;
+        csv += `GWCL_Water_Security,Annual_Potable_Water_Produced,${esg.galamseyWaterRemediation.annualWaterPurifiedM3},m3/yr,-,National Infrastructure\n`;
+        csv += `Forex_Substitution,Annual_Forex_Saved_USD,${esg.forexSubstitution.forexSavedAnnualUsd},USD/yr,-,Bank of Ghana Retention\n`;
+        csv += `Circular_Economy,Pozzolan_Cement_Additive,${esg.circularEconomy.pozzolanSilicaAnnualTonnes},t/yr,-,100% Landfill Diversion\n`;
+        csv += `Circular_Economy,Magnetite_Heavy_Media,${esg.circularEconomy.magnetiteRejectAnnualTonnes},t/yr,-,100% Landfill Diversion\n`;
+        this.downloadCsv("PAC_Plant_Ghana_EPA_ESG_Report.csv", csv);
       });
     }
 

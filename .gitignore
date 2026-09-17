@@ -17,6 +17,7 @@ ref2_page*.png
 *.tmp
 push_to_github.bat
 Refs/
+scratch/
 
 # Editor & IDE settings
 .vscode/

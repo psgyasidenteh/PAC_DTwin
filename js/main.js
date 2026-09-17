@@ -4,17 +4,18 @@
  * ISA-5.1 faceplates, and real-time technoeconomics.
  */
 
-import { SimulationEngine } from './engine/simulationEngine.js?v=2.2.1';
-import { HazopSimulator } from './engine/hazopSimulator.js?v=2.2.1';
-import { SoftSensorModule } from './engine/softSensors.js?v=2.2.1';
-import { EconomicsEngine } from './engine/economicsEngine.js?v=2.2.1';
+import { SimulationEngine } from './engine/simulationEngine.js?v=2.3.1';
+import { HazopSimulator } from './engine/hazopSimulator.js?v=2.3.1';
+import { SoftSensorModule } from './engine/softSensors.js?v=2.3.1';
+import { EconomicsEngine } from './engine/economicsEngine.js?v=2.3.1';
+import { GhanaEsgEngine } from './engine/ghanaEsgEngine.js?v=2.3.1';
 
-import { PfdRenderer } from './ui/pfdRenderer.js?v=2.2.1';
-import { PidRenderer } from './ui/pidRenderer.js?v=2.2.1';
-import { FaceplateModal } from './ui/faceplateModal.js?v=2.2.1';
-import { FeedControlsModal } from './ui/feedControlsModal.js?v=2.2.1';
-import { InspectorDrawer } from './ui/inspectorDrawer.js?v=2.2.1';
-import { AnalyticsView } from './ui/analyticsView.js?v=2.2.1';
+import { PfdRenderer } from './ui/pfdRenderer.js?v=2.3.1';
+import { PidRenderer } from './ui/pidRenderer.js?v=2.3.1';
+import { FaceplateModal } from './ui/faceplateModal.js?v=2.3.1';
+import { FeedControlsModal } from './ui/feedControlsModal.js?v=2.3.1';
+import { InspectorDrawer } from './ui/inspectorDrawer.js?v=2.3.1';
+import { AnalyticsView } from './ui/analyticsView.js?v=2.3.1';
 
 class DigitalTwinApp {
   constructor() {
@@ -23,6 +24,7 @@ class DigitalTwinApp {
     this.hazopSim = new HazopSimulator(this.engine);
     this.softSensors = new SoftSensorModule(this.engine);
     this.econEngine = new EconomicsEngine();
+    this.esgEngine = new GhanaEsgEngine();
 
     // 2. Initialize Modals & Drawers
     this.faceplateModal = new FaceplateModal(this.engine);
@@ -49,7 +51,8 @@ class DigitalTwinApp {
       this.engine,
       this.hazopSim,
       this.softSensors,
-      this.econEngine
+      this.econEngine,
+      this.esgEngine
     );
 
     this.currentView = "pfd"; // 'pfd' | 'pid' | 'analytics'
