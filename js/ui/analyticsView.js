@@ -1399,6 +1399,56 @@ export class AnalyticsView {
 
     return `
       <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <!-- PLANT CAPACITY UTILIZATION OPERATIONAL CONTROL BAR -->
+        <div class="control-card" style="background: linear-gradient(135deg, #0c121e 0%, #080c14 100%); border: 1px solid var(--border-medium); padding: 12px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 10px; height: 10px; border-radius: 50%; background: ${(p.capacityMultiplier ?? 1.0) >= 0.95 ? 'var(--color-emerald)' : ((p.capacityMultiplier ?? 1.0) >= 0.70 ? 'var(--color-cyan)' : 'var(--color-amber)')}; box-shadow: 0 0 8px currentColor;"></div>
+              <div>
+                <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                  Plant Operating Rate & Capacity Utilization
+                  <span id="capacity-badge-text" class="status-pill" style="font-size: 10px; padding: 2px 7px; border-color: ${(p.capacityMultiplier ?? 1.0) >= 0.95 ? 'var(--color-emerald)' : 'var(--color-amber)'}; color: ${(p.capacityMultiplier ?? 1.0) >= 0.95 ? 'var(--color-emerald)' : 'var(--color-amber)'};">
+                    ${Math.round((p.capacityMultiplier ?? 1.0) * 100)}% Rated Throughput (${((p.capacityMultiplier ?? 1.0) * 31384.63).toLocaleString(undefined, { maximumFractionDigits: 0 })} TPA)
+                  </span>
+                </div>
+                <div id="capacity-explainer-text" style="font-size: 10.5px; color: var(--text-secondary); margin-top: 2px;">
+                  ${(p.capacityMultiplier ?? 1.0) < 0.75 
+                    ? '⚠️ <strong style="color: #fbbf24;">Turndown State:</strong> Fixed plant overhead ($472/h) absorbed by lower throughput rate. Scale up to achieve nominal profit margin.' 
+                    : ((p.capacityMultiplier ?? 1.0) >= 1.0 
+                      ? '✓ <strong style="color: #34d399;">Commercial Nameplate (31,385 TPA):</strong> Full economies of scale achieve Aspen Plus $405.26/t benchmark and +' + econ.grossMarginPercent + '% operating margin.' 
+                      : 'ℹ️ <strong style="color: #38bdf8;">Partial Load:</strong> Standard operational ramp-up profile.')}
+                </div>
+              </div>
+            </div>
+
+            <!-- One-Click Capacity Presets -->
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <button class="capacity-preset-btn ${Math.abs((p.capacityMultiplier ?? 1.0) - 0.516) < 0.03 || Math.abs((p.capacityMultiplier ?? 1.0) - 0.50) < 0.03 ? 'active' : ''}" data-cap-target="0.516" title="50% Turndown / Pilot Baseline (16,200 TPA)">
+                50% Turndown
+              </button>
+              <button class="capacity-preset-btn ${Math.abs((p.capacityMultiplier ?? 1.0) - 0.75) < 0.03 ? 'active' : ''}" data-cap-target="0.75" title="75% Intermediate Load (23,540 TPA)">
+                75% Partial Load
+              </button>
+              <button class="capacity-preset-btn ${Math.abs((p.capacityMultiplier ?? 1.0) - 1.00) < 0.03 ? 'active' : ''}" data-cap-target="1.00" title="100% Commercial Design (31,385 TPA)">
+                ★ 100% Design
+              </button>
+              <button class="capacity-preset-btn ${Math.abs((p.capacityMultiplier ?? 1.0) - 1.10) < 0.03 ? 'active' : ''}" data-cap-target="1.10" title="110% Debottlenecked Stretch (34,520 TPA)">
+                110% Stretch
+              </button>
+            </div>
+          </div>
+
+          <!-- Fine-Tuning Slider Bar -->
+          <div style="display: flex; align-items: center; gap: 14px; margin-top: 10px;">
+            <span style="font-size: 10px; font-weight: 600; color: var(--text-tertiary); white-space: nowrap;">50% Turndown</span>
+            <input type="range" id="quick-capacity-slider" class="slider-control" min="0.50" max="1.15" step="0.01" value="${p.capacityMultiplier ?? 1.0}" style="flex: 1;" />
+            <span style="font-size: 10px; font-weight: 600; color: var(--text-tertiary); white-space: nowrap;">115% Max</span>
+            <div id="capacity-pac-rate-readout" style="min-width: 105px; text-align: right; font-family: var(--font-mono); font-weight: 800; font-size: 12.5px; color: var(--color-cyan);">
+              ${((p.capacityMultiplier ?? 1.0) * 3962.7).toFixed(0)} kg/h PAC
+            </div>
+          </div>
+        </div>
+
         <!-- Top Executive KPI Cards -->
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);">
           <!-- Live Unit Cost -->
@@ -1433,8 +1483,8 @@ export class AnalyticsView {
           <div class="control-card">
             <span class="control-card-title">Hourly Gross Operating Margin</span>
             <div style="display: flex; align-items: baseline; gap: var(--space-2); margin-block: var(--space-2);">
-              <span id="econ-gross-margin" style="font-size: 30px; font-weight: 900; color: #ffffff; font-family: var(--font-mono);">
-                ${econ.grossMarginPercent}%
+              <span id="econ-gross-margin" style="font-size: 30px; font-weight: 900; color: ${econ.grossMarginHourlyUsd >= 0 ? '#34d399' : '#fb7185'}; font-family: var(--font-mono);">
+                ${econ.grossMarginPercent >= 0 ? '+' : ''}${econ.grossMarginPercent}%
               </span>
               <span style="font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono);">(${this.fmtMoneyShort(econ.grossMarginHourlyUsd)}/h)</span>
             </div>
@@ -2404,6 +2454,75 @@ export class AnalyticsView {
       numInput.addEventListener("input", (e) => handleParamInput(e.target, false));
       numInput.addEventListener("change", (e) => handleParamInput(e.target, true));
     });
+
+    // Capacity Utilization Presets
+    this.container.querySelectorAll(".capacity-preset-btn[data-cap-target]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const targetCap = parseFloat(btn.getAttribute("data-cap-target"));
+        this.econEngine.setCapacityUtilization(targetCap);
+        if (this.engine.setCapacityUtilization) {
+          this.engine.setCapacityUtilization(targetCap);
+        }
+        this.render();
+      });
+    });
+
+    // Capacity Utilization Quick Slider
+    const capSlider = this.container.querySelector("#quick-capacity-slider");
+    if (capSlider) {
+      capSlider.addEventListener("input", (e) => {
+        const val = parseFloat(e.target.value);
+        this.econEngine.setCapacityUtilization(val);
+        const readout = this.container.querySelector("#capacity-pac-rate-readout");
+        if (readout) {
+          readout.textContent = `${(val * 3962.7).toFixed(0)} kg/h PAC`;
+        }
+        const badge = this.container.querySelector("#capacity-badge-text");
+        if (badge) {
+          badge.textContent = `${Math.round(val * 100)}% Rated Throughput (${(val * 31384.63).toLocaleString(undefined, { maximumFractionDigits: 0 })} TPA)`;
+          badge.style.borderColor = val >= 0.95 ? 'var(--color-emerald)' : 'var(--color-amber)';
+          badge.style.color = val >= 0.95 ? 'var(--color-emerald)' : 'var(--color-amber)';
+        }
+
+        // Real-time telemetry update for 60fps responsiveness
+        const s101 = this.engine.getStream("101");
+        const s710 = this.engine.getStream("710");
+        const hclKgH = (s101 ? s101.massFlowKgH : 755.99) * (this.engine.instruments["FFIC-601"] ? this.engine.instruments["FFIC-601"].pv : 3.02);
+        const liveEcon = this.econEngine.calculateLiveEconomics({
+          bauxiteFeedKgH: s101 ? s101.massFlowKgH : 755.99,
+          hclFeedKgH: hclKgH,
+          caAluminateKgH: 650.0,
+          fuelGasKgH: 329.25,
+          pacProductKgH: s710 ? s710.massFlowKgH : 2045.0,
+          powerKw: 150.0
+        });
+
+        const unitCostEl = this.container.querySelector("#econ-unit-cost");
+        if (unitCostEl) {
+          unitCostEl.textContent = this.fmtMoney(liveEcon.unitCostPerTonne);
+          unitCostEl.style.color = liveEcon.unitCostPerTonne <= liveEcon.targetUnitCostBenchmark ? 'var(--color-emerald)' : 'var(--color-amber)';
+        }
+        const marginEl = this.container.querySelector("#econ-gross-margin");
+        if (marginEl) {
+          marginEl.textContent = `${liveEcon.grossMarginPercent >= 0 ? '+' : ''}${liveEcon.grossMarginPercent}%`;
+          marginEl.style.color = liveEcon.grossMarginHourlyUsd >= 0 ? '#34d399' : '#fb7185';
+        }
+        const headerUnitCostEl = document.getElementById("kpi-unit-cost");
+        if (headerUnitCostEl) {
+          headerUnitCostEl.textContent = `$${liveEcon.unitCostPerTonne}`;
+          headerUnitCostEl.style.color = liveEcon.unitCostPerTonne <= liveEcon.targetUnitCostBenchmark ? 'var(--color-emerald)' : 'var(--color-amber)';
+        }
+      });
+
+      capSlider.addEventListener("change", (e) => {
+        const val = parseFloat(e.target.value);
+        this.econEngine.setCapacityUtilization(val);
+        if (this.engine.setCapacityUtilization) {
+          this.engine.setCapacityUtilization(val);
+        }
+        this.render();
+      });
+    }
 
     // CSV Exports for DCF, CAPEX, Labour, ESG
     const btnExportDcf = this.container.querySelector("#btn-export-dcf-csv");

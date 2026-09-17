@@ -117,7 +117,31 @@ export class FeedControlsModal {
           </div>
         </div>
 
-        <!-- 2. RAW BAUXITE FEED BOUNDARY -->
+        <!-- 2. PLANT CAPACITY OPERATIONAL PRESETS -->
+        <div class="control-card" style="margin-top: var(--space-2); background: #0c121e;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="control-card-title" style="color: var(--color-cyan);">Plant Capacity Utilization</span>
+            <span class="status-pill" id="feed-capacity-pill" style="font-size: 9px; padding: 2px 6px;">
+              ${Math.round((inputs.bauxiteFeedRateKgH / 755.99) * 100)}% THROUGHPUT
+            </span>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+            <button type="button" class="capacity-preset-btn ${Math.abs(inputs.bauxiteFeedRateKgH - 378.0) < 30 ? 'active' : ''}" data-feed-cap="0.50" style="flex: 1; min-width: 75px; text-align: center;">
+              50% Turndown
+            </button>
+            <button type="button" class="capacity-preset-btn ${Math.abs(inputs.bauxiteFeedRateKgH - 567.0) < 30 ? 'active' : ''}" data-feed-cap="0.75" style="flex: 1; min-width: 75px; text-align: center;">
+              75% Partial
+            </button>
+            <button type="button" class="capacity-preset-btn ${Math.abs(inputs.bauxiteFeedRateKgH - 755.99) < 30 ? 'active' : ''}" data-feed-cap="1.00" style="flex: 1; min-width: 75px; text-align: center;">
+              ★ 100% Design
+            </button>
+            <button type="button" class="capacity-preset-btn ${inputs.bauxiteFeedRateKgH > 800 ? 'active' : ''}" data-feed-cap="1.10" style="flex: 1; min-width: 75px; text-align: center;">
+              110% Stretch
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. RAW BAUXITE FEED BOUNDARY -->
         <div class="control-card" style="margin-top: var(--space-2);">
           <span class="control-card-title">Run-of-Mine Bauxite Feed Boundary</span>
 
@@ -229,6 +253,22 @@ export class FeedControlsModal {
       });
     }
 
+    // Capacity Preset Buttons
+    this.container.querySelectorAll(".capacity-preset-btn[data-feed-cap]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const util = parseFloat(btn.getAttribute("data-feed-cap"));
+        const rate = Number((755.99 * util).toFixed(1));
+        this.draftInputs.bauxiteFeedRateKgH = rate;
+        if (feedRateSlider) feedRateSlider.value = rate;
+        if (feedRateVal) feedRateVal.textContent = `${rate.toFixed(1)} kg/h`;
+        const capPill = this.container.querySelector("#feed-capacity-pill");
+        if (capPill) capPill.textContent = `${Math.round(util * 100)}% THROUGHPUT`;
+        this.container.querySelectorAll(".capacity-preset-btn[data-feed-cap]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        markDirty();
+      });
+    });
+
     // Feed Rate Slider
     const feedRateSlider = this.container.querySelector("#feed-rate-slider");
     const feedRateVal = this.container.querySelector("#feed-rate-val");
@@ -237,6 +277,8 @@ export class FeedControlsModal {
         const val = parseFloat(e.target.value);
         feedRateVal.textContent = `${val.toFixed(1)} kg/h`;
         this.draftInputs.bauxiteFeedRateKgH = val;
+        const capPill = this.container.querySelector("#feed-capacity-pill");
+        if (capPill) capPill.textContent = `${Math.round((val / 755.99) * 100)}% THROUGHPUT`;
         markDirty();
       });
     }

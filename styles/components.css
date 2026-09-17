@@ -945,6 +945,34 @@
   font-weight: 700;
 }
 
+/* Capacity Utilization Selector Presets */
+.capacity-preset-btn {
+  background: #0f172a;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.capacity-preset-btn:hover {
+  color: var(--text-primary);
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.capacity-preset-btn.active {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
 /* Parameter Grid & Interactive Cards */
 .econ-param-grid {
   display: grid;

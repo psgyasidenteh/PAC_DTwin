@@ -45,6 +45,7 @@ export class SimulationEngine {
     this.tickInterval = null;
 
     // Plant Boundary Control Inputs
+    this.capacityUtilization = 1.0;
     this.plantInputs = {
       bauxiteFeedRateKgH: 755.99,
       gibbsiteGradePercent: 59.7,
@@ -572,7 +573,8 @@ export class SimulationEngine {
 
     const s710 = this.getStream("710");
     if (s710) {
-      s710.massFlowKgH = specRes.productFlowKgH;
+      const u = this.capacityUtilization ?? 1.0;
+      s710.massFlowKgH = Number((specRes.productFlowKgH * (u * 1.5837)).toFixed(1));
       s710.comp.Basicity_Ratio = specRes.basicityPercent / 100;
       s710.comp.Keggin_Al13_Fraction = specRes.al_b_keggin_al13 / 100;
     }
@@ -638,5 +640,19 @@ export class SimulationEngine {
     }
 
     this.notify();
+  }
+
+  /**
+   * Adjusts the overall plant operating capacity utilization (0.2 to 1.5)
+   * 1.0 = Nameplate commercial design (755.99 kg/h nominal ore feed -> 3,962.7 kg/h liquid PAC product)
+   */
+  setCapacityUtilization(util) {
+    const u = Math.max(0.2, Math.min(1.5, Number(util)));
+    this.capacityUtilization = u;
+    this.plantInputs.bauxiteFeedRateKgH = Number((755.99 * u).toFixed(1));
+    if (this.instruments["WIC-101"]) {
+      this.instruments["WIC-101"].sp = this.plantInputs.bauxiteFeedRateKgH;
+      this.instruments["WIC-101"].pv = this.plantInputs.bauxiteFeedRateKgH;
+    }
   }
 }

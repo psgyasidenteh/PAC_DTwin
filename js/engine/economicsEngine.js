@@ -173,6 +173,10 @@ export class EconomicsEngine {
     return this.calculateLiveEconomics(params);
   }
 
+  setCapacityUtilization(util) {
+    this.setParam("capacityMultiplier", Number(util));
+  }
+
   // =========================================================================
   // LIVE SCADA PRODUCTION ECONOMICS (INSTANT REAL-TIME TELEMETRY)
   // =========================================================================
@@ -188,28 +192,49 @@ export class EconomicsEngine {
     customPrices = null
   }) {
     const p = customPrices ? { ...this.params, ...customPrices } : this.params;
-    const pacTph = Math.max(0.001, pacProductKgH / 1000.0);
+    const util = Math.max(0.1, Number(p.capacityMultiplier ?? 1.0));
+
+    // Nominal Nameplate PAC rate = 31,384.63 TPA / hoursPerYear (3.9627 t/h = 3,962.7 kg/h at 7,920 h)
+    const nominalPacTph = this.nameplateCapacityTpa / p.hoursPerYear;
+
+    // Actual PAC production in tonnes per hour:
+    // If live sensor flow is provided (default ~2,045 kg/h at 51.6% single-train baseline),
+    // scale by capacity utilization ratio so 1.00 = 3,962.7 kg/h (100% Nameplate Design),
+    // and 0.516 = 2,045 kg/h (Turndown / Single-train baseline).
+    let pacTph;
+    if (pacProductKgH !== null && pacProductKgH !== undefined && pacProductKgH > 0) {
+      pacTph = (pacProductKgH >= 3500)
+        ? (pacProductKgH / 1000.0)
+        : ((pacProductKgH / 1000.0) * (util / 0.5163));
+    } else {
+      pacTph = nominalPacTph * util;
+    }
+
+    // Relative production scale factor relative to 100% nameplate (3.963 t/h):
+    const flowScale = pacTph / nominalPacTph;
 
     // Ore grade compensation: lower grade bauxite requires higher raw ore feed rate
     const gradeCompensation = 59.7 / Math.max(10.0, p.bauxiteGradeAl2o3);
-    const adjustedBauxiteFlow = (bauxiteFeedKgH / 1000.0) * gradeCompensation;
+    const adjustedBauxiteFlow = ((bauxiteFeedKgH * flowScale) / 1000.0) * gradeCompensation;
 
     // Hourly Raw Material Costs ($/h)
     const costBauxite = adjustedBauxiteFlow * p.costBauxitePerTonne;
-    const costHcl = (hclFeedKgH / 1000.0) * p.costHcl32PerTonne;
-    const costCaAluminate = (caAluminateKgH / 1000.0) * p.costCaAluminatePerTonne;
-    const costCoGas = (fuelGasKgH / 1000.0) * p.costCoPerTonne;
-    const costWater = (processWaterKgH / 1000.0) * p.costProcessWaterPerTonne;
+    const costHcl = ((hclFeedKgH * flowScale) / 1000.0) * p.costHcl32PerTonne;
+    const costCaAluminate = ((caAluminateKgH * flowScale) / 1000.0) * p.costCaAluminatePerTonne;
+    const costCoGas = ((fuelGasKgH * flowScale) / 1000.0) * p.costCoPerTonne;
+    const costWater = ((processWaterKgH * flowScale) / 1000.0) * p.costProcessWaterPerTonne;
     const rawMaterialCostHourly = costBauxite + costHcl + costCaAluminate + costCoGas + costWater;
 
     // Hourly Utility Costs ($/h)
-    const costElec = powerKw * p.costElectricityPerKwh;
-    const costCooling = coolingWaterM3H * p.costCoolingWaterPerM3;
+    const costElec = (powerKw * flowScale) * p.costElectricityPerKwh;
+    const costCooling = (coolingWaterM3H * flowScale) * p.costCoolingWaterPerM3;
     const utilitiesCostHourly = costElec + costCooling;
 
     // Hourly Fixed & Logistics Costs ($/h)
+    // Fixed Costs (Labor, Maintenance, Overheads, Insurance) are 100% FIXED regardless of throughput:
     const fixedCostHourly = this.baseFixedOpexUsd / p.hoursPerYear;
-    const logisticsHourly = (p.annualLogisticsCost + p.annualOtherVariableCost) / p.hoursPerYear;
+    // Logistics (Haulage, ISO tanker leasing) scales proportionally with volume:
+    const logisticsHourly = ((p.annualLogisticsCost + p.annualOtherVariableCost) / p.hoursPerYear) * flowScale;
 
     const totalCostHourly = rawMaterialCostHourly + utilitiesCostHourly + fixedCostHourly + logisticsHourly;
     const unitCostPerTonne = totalCostHourly / pacTph;
@@ -224,9 +249,9 @@ export class EconomicsEngine {
     // Revenue & Profit Margin
     const revenueHourly = pacTph * blendedPrice;
     const byProductRevenueHourly = (
-      (2062.13 * p.priceSilicaPozzolanPerTonne) +
-      (457.38 * p.priceMagnetitePerTonne)
-    ) / p.hoursPerYear;
+      ((2062.13 * p.priceSilicaPozzolanPerTonne) +
+      (457.38 * p.priceMagnetitePerTonne)) / p.hoursPerYear
+    ) * flowScale;
 
     const totalRevenueHourly = revenueHourly + byProductRevenueHourly;
     const grossMarginHourly = totalRevenueHourly - totalCostHourly;
